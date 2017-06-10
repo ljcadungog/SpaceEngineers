@@ -37,6 +37,7 @@ using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.Game.ModAPI.Interfaces;
 using VRage.Network;
+using VRage.Sync;
 
 #endregion
 
@@ -62,6 +63,10 @@ namespace Sandbox.Game.Entities.Cube
 
         private readonly Sync<int> m_countdownMs;
         public bool IsCountingDown { get; private set; }
+
+        // Used for achievement to get player who clicked Detonate button
+        // Called only on client
+        public static Action<MyWarhead> OnWarheadDetonatedClient;
 
         private int BlinkDelay
         {
@@ -91,16 +96,20 @@ namespace Sandbox.Game.Entities.Cube
 
         public MyWarhead()
         {
+#if XB1 // XB1_SYNC_NOREFLECTION
+            m_countdownMs = SyncType.CreateAndAddProp<int>();
+            m_isArmed = SyncType.CreateAndAddProp<bool>();
+#endif // XB1
             CreateTerminalControls();
 
             m_isArmed.ValueChanged += (x) => UpdateEmissivity();
         }
 
-        static void CreateTerminalControls()
+        protected override void CreateTerminalControls()
         {
             if (MyTerminalControlFactory.AreControlsCreated<MyWarhead>())
                 return;
-
+            base.CreateTerminalControls();
             var slider = new MyTerminalControlSlider<MyWarhead>("DetonationTime", MySpaceTexts.TerminalControlPanel_Warhead_DetonationTime, MySpaceTexts.TerminalControlPanel_Warhead_DetonationTime);
             slider.SetLogLimits(1, 60 * 60);
             slider.DefaultValue = 10;
@@ -144,7 +153,15 @@ namespace Sandbox.Game.Entities.Cube
                 "Detonate",
                 MySpaceTexts.TerminalControlPanel_Warhead_Detonate,
                 MySpaceTexts.TerminalControlPanel_Warhead_Detonate,
-                (b) => { if (b.IsArmed) { MyMultiplayer.RaiseEvent(b, x => x.DetonateRequest); } });
+                (b) =>
+                {
+                    if (b.IsArmed)
+                    {
+                        MyMultiplayer.RaiseEvent(b, x => x.DetonateRequest);
+                        var handler = OnWarheadDetonatedClient;
+                        if (handler != null) handler(b);
+                    }
+                });
             detonateButton.Enabled = (x) => x.IsArmed;
             detonateButton.EnableAction();
             MyTerminalControlFactory.AddControl(detonateButton);
@@ -348,7 +365,7 @@ namespace Sandbox.Game.Entities.Cube
                 VoxelExplosionCenter = m_explosionFullSphere.Center,// + 2 * WorldMatrix.Forward * 0.5f,
                 ExplosionFlags = MyExplosionFlags.AFFECT_VOXELS | MyExplosionFlags.APPLY_FORCE_AND_DAMAGE | MyExplosionFlags.CREATE_DEBRIS | MyExplosionFlags.CREATE_DECALS | MyExplosionFlags.CREATE_PARTICLE_EFFECT | MyExplosionFlags.CREATE_SHRAPNELS | MyExplosionFlags.APPLY_DEFORMATION,
                 VoxelCutoutScale = 1.0f,
-                PlaySound = true,
+                PlaySound = false,
                 ApplyForceAndDamage = true,
                 ObjectsRemoveDelayInMiliseconds = 40
             };
@@ -362,7 +379,7 @@ namespace Sandbox.Game.Entities.Cube
             //Small grid = 2.5m radius
             float radiusMultiplier = 4; //reduced by 20%
             float warheadBlockRadius = CubeGrid.GridSize * radiusMultiplier;
-           
+
             float shrink = 0.85f;
             m_explosionShrinkenSphere = new BoundingSphereD(PositionComp.GetPosition(), (double)warheadBlockRadius * shrink);
 
@@ -414,6 +431,17 @@ namespace Sandbox.Game.Entities.Cube
 
         public override void OnDestroy()
         {
+            MySoundPair cueEnum = BlockDefinition.ActionSound;
+            if (cueEnum != MySoundPair.Empty)
+            {
+                MyEntity3DSoundEmitter emitter = MyAudioComponent.TryGetSoundEmitter();
+                if (emitter != null)
+                {
+                    emitter.Entity = this;
+                    emitter.SetPosition(PositionComp.GetPosition());
+                    emitter.PlaySound(cueEnum);
+                }
+            }
             if (Sandbox.Game.Multiplayer.Sync.IsServer)
             {
                 if (!IsFunctional) return;
@@ -481,7 +509,7 @@ namespace Sandbox.Game.Entities.Cube
             if (success)
             {
                 MyMultiplayer.RaiseEvent(this, x => x.SetCountdownClient, countdownState);
-            }     
+            }
         }
 
         [Event, Reliable, Broadcast]

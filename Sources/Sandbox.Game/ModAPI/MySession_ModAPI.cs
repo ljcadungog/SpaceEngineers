@@ -183,6 +183,11 @@ namespace Sandbox.Game.World
             get { return MaxFloatingObjects; }
         }
 
+        short IMySession.MaxBackupSaves
+        {
+            get { return MaxBackupSaves; }
+        }
+
         short IMySession.MaxPlayers
         {
             get { return MaxPlayers; }
@@ -422,20 +427,22 @@ namespace Sandbox.Game.World
         {
             get { return MySession.Static.Gpss; }
         }
-
+        
         bool IMySession.IsUserAdmin( ulong steamId )
         {
             return MySession.Static.IsUserAdmin( steamId );
         }
         
+        [Obsolete("Use GetUserPromoteLevel")]
         bool IMySession.IsUserPromoted( ulong steamId )
         {
-            return MySession.Static.IsUserPromoted( steamId );
+            return MySession.Static.IsUserSpaceMaster( steamId );
         }
 
+        [Obsolete("Use HasCreativeRights")]
         bool IMySession.HasAdminPrivileges
         {
-            get { return MySession.Static.IsAdmin; }
+            get { return HasCreativeRights; }
         }
 
         event Action IMySession.OnSessionReady
@@ -448,6 +455,21 @@ namespace Sandbox.Game.World
         {
             add { MySession.OnLoading += value; }
             remove { MySession.OnLoading -= value; }
+        }
+
+        MyPromoteLevel IMySession.PromoteLevel
+        {
+            get { return PromoteLevel; }
+        }
+
+        MyPromoteLevel IMySession.GetUserPromoteLevel(ulong steamId)
+        {
+            return GetUserPromoteLevel(steamId);
+        }
+
+        bool IMySession.HasCreativeRights
+        {
+            get { return HasCreativeRights; }
         }
     }
 }

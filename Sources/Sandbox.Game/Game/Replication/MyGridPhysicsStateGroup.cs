@@ -27,7 +27,6 @@ namespace Sandbox.Game.Replication
     /// </summary>
     class MyGridPhysicsStateGroup : MyEntityPhysicsStateGroup
     {
-        static Func<MyEntity, Vector3D, bool> m_positionValidation = ValidatePosition;
 
         static List<MyCubeGrid> m_groups = new List<MyCubeGrid>();
 
@@ -41,11 +40,11 @@ namespace Sandbox.Game.Replication
         public MyGridPhysicsStateGroup(MyEntity entity, IMyReplicable ownerReplicable)
             : base(entity, ownerReplicable)
         {
+            m_positionValidation = ValidatePosition;
         }
 
-        static bool ValidatePosition(MyEntity entity, Vector3D position)
+        bool ValidatePosition(MyEntity entity, Vector3D position)
         {
-            // TODO: Jump hack, ideally remove (depends on position which comes from server, need to read it first, then check, then apply)
             var grid = entity as MyCubeGrid;
             if (grid != null && grid.PositionComp != null && grid.GridSystems.JumpSystem != null)
             {
@@ -97,7 +96,7 @@ namespace Sandbox.Game.Replication
             foreach (var node in group.Nodes)
             {
                 // Static in never master
-                if (node.NodeData.Physics.IsStatic)
+                if (node.NodeData.Physics == null || node.NodeData.Physics.IsStatic)
                     continue;
 
                 // Sort by radius, then by EntityId (to make stable sort of two same-size grids)
@@ -122,6 +121,11 @@ namespace Sandbox.Game.Replication
             if (Entity != GetMasterGrid(Entity))
                 return 0;
 
+            //support has allways high priority
+            if (client.State.SupportId.HasValue && client.State.SupportId.Value == Entity.EntityId && IsMoving(Entity))
+            {
+                return 1000.0f;
+            }
             return base.GetGroupPriority(frameCountWithoutSync, client, settings);
         }
 
@@ -129,7 +133,7 @@ namespace Sandbox.Game.Replication
         {
             if (Sync.IsServer == false && grid != null && grid.Physics != null && grid.Physics.RigidBody != null)
             {
-                float maxSpeed = grid.GridSizeEnum == MyCubeSize.Large ? MyGridPhysics.LargeShipMaxLinearVelocity() : MyGridPhysics.SmallShipMaxLinearVelocity();
+                float maxSpeed = 1.04f*(grid.GridSizeEnum == MyCubeSize.Large ? MyGridPhysics.LargeShipMaxLinearVelocity() : MyGridPhysics.SmallShipMaxLinearVelocity());
                 
                 maxSpeed *= Sync.RelativeSimulationRatio;
                

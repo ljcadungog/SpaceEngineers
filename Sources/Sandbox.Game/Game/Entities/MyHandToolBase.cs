@@ -450,6 +450,7 @@ namespace Sandbox.Game.Entities
                             MyHitInfo hitInfo = new MyHitInfo();
                             hitInfo.Position = detectorComponent.HitPosition;
                             hitInfo.Normal = detectorComponent.HitNormal;
+                            hitInfo.ShapeKey = detectorComponent.ShapeKey; 
 
                             bool isBlock = false;
                             float efficiencyMultiplier = 1.0f;
@@ -592,7 +593,7 @@ namespace Sandbox.Game.Entities
                 }
             }
 
-            float hitDistance = Vector3.Distance(detectorComponent.HitPosition, PositionComp.GetPosition());
+            float hitDistance = Vector3.Distance(detectorComponent.HitPosition, detectorComponent.StartPosition);
             canHit = hitDistance <= m_toolItemDef.HitDistance;
             if (!canHit)
             {
@@ -667,7 +668,7 @@ namespace Sandbox.Game.Entities
                 hitEntity = detectorComponent.DetectedEntity;
                 shapeKey = detectorComponent.ShapeKey;
 
-                float hitDistance = Vector3.Distance(detectorComponent.HitPosition, PositionComp.GetPosition());
+                float hitDistance = Vector3.Distance(detectorComponent.HitPosition, detectorComponent.StartPosition);
 
                 if (hitDistance > m_toolItemDef.HitDistance)
                     hitEntity = null;
@@ -848,5 +849,11 @@ namespace Sandbox.Game.Entities
 
         public int CurrentAmmunition { set; get; }
         public int CurrentMagazineAmmunition { set; get; }
+
+        public void UpdateSoundEmitter()
+        {
+            if (m_soundEmitter != null)
+                m_soundEmitter.Update();
+        }
     }
 }

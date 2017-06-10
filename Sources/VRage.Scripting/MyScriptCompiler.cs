@@ -51,6 +51,8 @@ namespace VRage.Scripting
         readonly HashSet<string> m_implicitScriptNamespaces = new HashSet<string>();
         readonly HashSet<string> m_ignoredWarnings = new HashSet<string>();
         readonly HashSet<Type> m_unblockableIngameExceptions = new HashSet<Type>();
+        readonly HashSet<string> m_conditionalCompilationSymbols = new HashSet<string>();
+        readonly CSharpParseOptions m_conditionalParseOptions;
 
         public MyScriptCompiler()
         {
@@ -76,6 +78,7 @@ namespace VRage.Scripting
             m_whitelist = new MyScriptWhitelist(this);
             m_ingameWhitelistDiagnosticAnalyzer = new WhitelistDiagnosticAnalyzer(m_whitelist, MyWhitelistTarget.Ingame);
             m_modApiWhitelistDiagnosticAnalyzer = new WhitelistDiagnosticAnalyzer(m_whitelist, MyWhitelistTarget.ModApi);
+            m_conditionalParseOptions = new CSharpParseOptions();
         }
 
         /// <summary>
@@ -100,6 +103,14 @@ namespace VRage.Scripting
         public HashSetReader<Type> UnblockableIngameExceptions
         {
             get { return m_unblockableIngameExceptions; }
+        }
+
+        /// <summary>
+        ///     Gets the conditional compilation symbols scripts are compiled with.
+        /// </summary>
+        public HashSetReader<string> ConditionalCompilationSymbols
+        {
+            get { return m_conditionalCompilationSymbols; }
         }
 
         /// <summary>
@@ -192,6 +203,16 @@ namespace VRage.Scripting
             {
                 var result = compilation.Emit(assemblyStream);
                 var success = result.Success;
+
+                //GR: Check for finalizers after sucessfull compilation
+                if (success)
+                {
+                    foreach (var script in scripts)
+                    {
+                        success &= HasFinalizers(script.Code, messages);
+                    }
+                }
+
                 AnalyzeDiagnostics(result.Diagnostics, messages, ref success);
                 if (analyticCompilation != null)
                 {
@@ -352,7 +373,7 @@ namespace VRage.Scripting
             IEnumerable<SyntaxTree> syntaxTrees = null;
             if (scripts != null)
             {
-                syntaxTrees = scripts.Select(s => CSharpSyntaxTree.ParseText(s.Code, path: s.Name));
+                syntaxTrees = scripts.Select(s => CSharpSyntaxTree.ParseText(s.Code, options: m_conditionalParseOptions.WithPreprocessorSymbols(ConditionalCompilationSymbols), path: s.Name));
             }
             if (assemblyFileName != null)
             {
@@ -431,6 +452,27 @@ namespace VRage.Scripting
         }
 
         /// <summary>
+        ///     Adds a conditional compilation symbol
+        /// </summary>
+        /// <param name="symbols"></param>
+        public void AddConditionalCompilationSymbols(params string[] symbols)
+        {
+            for (var i = 0; i < symbols.Length; i++)
+            {
+                var symbol = symbols[i];
+                if (symbol == null)
+                {
+                    throw new ArgumentNullException("symbols");
+                }
+                else if (symbol == string.Empty)
+                {
+                    continue;
+                }
+                m_conditionalCompilationSymbols.Add(symbols[i]);
+            }
+        }
+
+        /// <summary>
         ///     Creates a complete code file from an ingame script.
         /// </summary>
         /// <param name="code"></param>
@@ -463,6 +505,79 @@ namespace VRage.Scripting
             //                             $"#line 1 \"{className}\"\n" +
             //                             $"{code}\n" +
             //                             $"}}\n");
+        }
+
+        /// <summary>
+        /// GR: Manual Checking for finalizers (destructors) in code to avoid crashes. No use of regular expressions!!!
+        /// Maybe change to the future (if can be done by Roslyn scripts simpler).
+        /// </summary>
+        private bool HasFinalizers(string code, List<Message> messages)
+        {
+            var nextIndx = 0;
+            var indx = code.IndexOf('~', nextIndx);
+            while (indx != -1)
+            {
+                nextIndx = NextNonSpaceCharIndx(code, indx + 1);
+                if (code[nextIndx] == '@' || code[nextIndx] == '_' || Char.IsLetter(code[nextIndx]))
+                {
+                    while (!WhiteSpaceRelated(code[nextIndx]) && code[nextIndx] != '(') { ++nextIndx; if (nextIndx > code.Length) break; }
+                    nextIndx = NextNonSpaceCharIndx(code, nextIndx);
+                    if (code[nextIndx] == '(')
+                    {
+                        nextIndx = NextNonSpaceCharIndx(code, ++nextIndx);
+                        if (code[nextIndx] == ')')
+                        {
+                            nextIndx = NextNonSpaceCharIndx(code, ++nextIndx);
+                            if (code[nextIndx] == '{')
+                            {
+                                messages.Add(new Message(TErrorSeverity.Error, "Error at : " + code.Substring(indx, (code.IndexOf('\n', indx) - indx)) + ". Finalizers are not allowed! Remove any destructors and try again!"));
+                                return false;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    indx = code.IndexOf('~', nextIndx);
+                }
+                indx = code.IndexOf('~', nextIndx);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Helper Fuction find next non space related character in string
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="indx"></param>
+        /// <returns></returns>
+        private static int NextNonSpaceCharIndx(string str, int indx)
+        {
+            while (true)
+            {
+                if (indx >= str.Length)
+                {
+                    return -1;
+                }
+                if (WhiteSpaceRelated(str[indx]))
+                {
+                    ++indx;
+                }
+                else
+                {
+                    return indx;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns True if a character is whitespace or newline related
+        /// </summary>
+        /// <param name="ch"></param>
+        /// <returns></returns>
+        private static bool WhiteSpaceRelated(char ch)
+        {
+            return ch == '\r' || ch == '\n' || ch == ' ' || ch == '\t';
         }
     }
 }

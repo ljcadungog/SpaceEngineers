@@ -31,6 +31,7 @@ using VRage.ModAPI;
 using VRage.Network;
 using VRage.Utils;
 using VRageMath;
+using VRageRender.Import;
 
 namespace SpaceEngineers.Game.Entities.Blocks
 {
@@ -86,7 +87,7 @@ namespace SpaceEngineers.Game.Entities.Blocks
 
         protected override bool CheckIsWorking()
         {
-			return SinkComp.IsPowered && base.CheckIsWorking();
+            return SinkComp.IsPoweredByType(MyResourceDistributorComponent.ElectricityId) && base.CheckIsWorking();
         }
 
         /// <summary>
@@ -166,11 +167,11 @@ namespace SpaceEngineers.Game.Entities.Blocks
             }
         }
 
-        static void CreateTerminalControls()
+        protected override void CreateTerminalControls()
         {
             if (MyTerminalControlFactory.AreControlsCreated<MyMedicalRoom>())
                 return;
-
+            base.CreateTerminalControls();
             //terminal:
             var label = new MyTerminalControlLabel<MyMedicalRoom>(MySpaceTexts.TerminalScenarioSettingsLabel);
             var ownershipCheckbox = new MyTerminalControlCheckbox<MyMedicalRoom>("TakeOwnership", MySpaceTexts.MedicalRoom_ownershipAssignmentLabel, MySpaceTexts.MedicalRoom_ownershipAssignmentTooltip);
@@ -214,14 +215,14 @@ namespace SpaceEngineers.Game.Entities.Blocks
             SinkComp.Init(
                 resourceSinkGroup,
                 MyEnergyConstants.MAX_REQUIRED_POWER_MEDICAL_ROOM,
-                () => (Enabled && IsFunctional) ? SinkComp.MaxRequiredInput : 0f);
+                () => (Enabled && IsFunctional) ? SinkComp.MaxRequiredInputByType(MyResourceDistributorComponent.ElectricityId) : 0f);
             SinkComp.IsPoweredChanged += Receiver_IsPoweredChanged;
 
             base.Init(objectBuilder, cubeGrid);
 	         
             m_rechargeSocket = new MyRechargeSocket();
 
-            NeedsUpdate |= MyEntityUpdateEnum.EACH_10TH_FRAME | MyEntityUpdateEnum.EACH_100TH_FRAME;
+            NeedsUpdate |= MyEntityUpdateEnum.EACH_10TH_FRAME;
 
             SteamUserId = (objectBuilder as MyObjectBuilder_MedicalRoom).SteamUserId;
 
@@ -292,11 +293,13 @@ namespace SpaceEngineers.Game.Entities.Blocks
             return builder;
         }
 
-        public override void UpdateBeforeSimulation100()
+        public override void UpdateSoundEmitters()
         {
-            base.UpdateBeforeSimulation100();
-            m_idleSoundEmitter.Update();
-            m_progressSoundEmitter.Update();
+            base.UpdateSoundEmitters();
+            if(m_idleSoundEmitter != null)
+                m_idleSoundEmitter.Update();
+            if(m_progressSoundEmitter != null)
+                m_progressSoundEmitter.Update();
         }
 
         public override void UpdateBeforeSimulation10()
@@ -322,7 +325,8 @@ namespace SpaceEngineers.Game.Entities.Blocks
         public void Use(UseActionEnum actionEnum, MyCharacter user)
         {
             var relation = GetUserRelationToOwner(user.ControllerInfo.Controller.Player.Identity.IdentityId);
-            if (!relation.IsFriendly())
+            var player = MyPlayer.GetPlayerFromCharacter(user);
+            if (!(relation.IsFriendly() || (player != null && MySession.Static.IsUserSpaceMaster(player.Client.SteamUserId))))
             {
                 if (user.ControllerInfo.Controller.Player == MySession.Static.LocalHumanPlayer)
                 {

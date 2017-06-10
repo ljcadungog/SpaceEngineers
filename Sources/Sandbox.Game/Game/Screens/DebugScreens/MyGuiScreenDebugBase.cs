@@ -148,7 +148,15 @@ namespace Sandbox.Game.Gui
         {
             MyGuiControlCheckbox checkBox = AddCheckBox(text, enabled, controlGroup, color, checkBoxOffset);
             checkBox.IsChecked = checkedState;
-            checkBox.IsCheckedChanged = checkBoxChange;
+            if (checkBoxChange != null)
+            {
+                checkBox.IsCheckedChanged =
+                delegate(MyGuiControlCheckbox sender)
+                {
+                    checkBoxChange(sender);
+                    ValueChanged(sender);
+                };
+            }
             return checkBox;
         }
 
@@ -173,6 +181,7 @@ namespace Sandbox.Game.Gui
                 checkBox.IsCheckedChanged = delegate(MyGuiControlCheckbox sender)
                 {
                     setter(sender.IsChecked);
+                    ValueChanged(sender);
                 };
             }
 
@@ -365,10 +374,10 @@ namespace Sandbox.Game.Gui
 
         #endregion
 
-        protected MyGuiControlTextbox AddTextbox(String value, Action<MyGuiControlTextbox> onTextChanged, Vector4? color = null, float scale = 1.0f, MyGuiControlTextboxType type = MyGuiControlTextboxType.Normal, List<MyGuiControlBase> controlGroup = null, MyFontEnum font = MyFontEnum.Debug)
+        protected MyGuiControlTextbox AddTextbox(String value, Action<MyGuiControlTextbox> onTextChanged, Vector4? color = null, float scale = 1.0f, MyGuiControlTextboxType type = MyGuiControlTextboxType.Normal, List<MyGuiControlBase> controlGroup = null, string font = MyFontEnum.Debug, MyGuiDrawAlignEnum originAlign =MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_TOP)
         {
             var textbox = new MyGuiControlTextbox(m_currentPosition, value, 6, color, scale, type);
-            textbox.OriginAlign = MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP;
+            textbox.OriginAlign = originAlign;
             if (onTextChanged != null)
             {
                 textbox.TextChanged += onTextChanged;
@@ -385,7 +394,7 @@ namespace Sandbox.Game.Gui
 
         #region Label
 
-        protected MyGuiControlLabel AddLabel(String text, Vector4 color, float scale, List<MyGuiControlBase> controlGroup = null, MyFontEnum font = MyFontEnum.Debug)
+        protected MyGuiControlLabel AddLabel(String text, Vector4 color, float scale, List<MyGuiControlBase> controlGroup = null, string font = MyFontEnum.Debug)
         {
             MyGuiControlLabel label = new MyGuiControlLabel(
                 position: m_currentPosition,
@@ -442,7 +451,7 @@ namespace Sandbox.Game.Gui
         #region Color
 
 
-        private MyGuiControlColor AddColor(StringBuilder text)
+        private MyGuiControlColor AddColor(String text)
         {
             MyGuiControlColor colorControl = new MyGuiControlColor(
                 text: text,
@@ -459,7 +468,25 @@ namespace Sandbox.Game.Gui
             return colorControl;
         }
 
-        protected MyGuiControlColor AddColor(StringBuilder text, object instance, MemberInfo memberInfo)
+        protected MyGuiControlColor AddColor(String text, Func<Color> getter, Action<Color> setter)
+        {
+            return AddColor(text, getter(), (c) => setter(c.GetColor()));
+        }
+
+        protected MyGuiControlColor AddColor(String text, Color value, Action<MyGuiControlColor> setter)
+        {
+            MyGuiControlColor colorControl = AddColor(text);
+
+            colorControl.SetColor(value);
+            colorControl.OnChange += delegate(MyGuiControlColor sender)
+            {
+                setter(colorControl);
+            };
+
+            return colorControl;
+        }
+
+        protected MyGuiControlColor AddColor(String text, object instance, MemberInfo memberInfo)
         {
             MyGuiControlColor colorControl = AddColor(text);
 
@@ -575,9 +602,10 @@ namespace Sandbox.Game.Gui
         protected MyGuiControlCombobox AddCombo(
             List<MyGuiControlBase> controlGroup = null,
             Vector4? textColor = null,
-            Vector2? size = null)
+            Vector2? size = null,
+            int openAreaItemsCount = 10)
         {
-            MyGuiControlCombobox combo = new MyGuiControlCombobox(m_currentPosition, size: size, textColor: textColor)
+            MyGuiControlCombobox combo = new MyGuiControlCombobox(m_currentPosition, size: size, textColor: textColor, openAreaItemsCount: openAreaItemsCount)
             {
                 VisualStyle = MyGuiControlComboboxStyleEnum.Debug,
                 OriginAlign = MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP,
@@ -596,12 +624,13 @@ namespace Sandbox.Game.Gui
             TEnum selectedItem,
             Action<TEnum> valueChanged,
             bool enabled = true,
+            int openAreaItemsCount = 10,
             List<MyGuiControlBase> controlGroup = null, Vector4? color = null)
             where TEnum : struct, IComparable, IFormattable, IConvertible
         {
             Debug.Assert(typeof(TEnum).IsEnum);
 
-            var combobox = AddCombo(controlGroup, color);
+            var combobox = AddCombo(controlGroup, color, openAreaItemsCount: openAreaItemsCount);
             foreach (var value in MyEnum<TEnum>.Values)
             {
                 combobox.AddItem((int)(object)value, new StringBuilder(value.ToString()));
@@ -619,12 +648,13 @@ namespace Sandbox.Game.Gui
             object instance,
             MemberInfo memberInfo,
             bool enabled = true,
+            int openAreaItemsCount = 10,
             List<MyGuiControlBase> controlGroup = null, Vector4? color = null)
             where TEnum : struct, IComparable, IFormattable, IConvertible
         {
             Debug.Assert(typeof(TEnum).IsEnum);
 
-            var combobox = AddCombo(controlGroup, color);
+            var combobox = AddCombo(controlGroup, color, openAreaItemsCount: openAreaItemsCount);
             foreach (var value in MyEnum<TEnum>.Values)
             {
                 combobox.AddItem((int)(object)value, new StringBuilder(value.ToString()));

@@ -21,6 +21,7 @@ using VRage.Game;
 using VRage.ModAPI;
 using VRage.Network;
 using VRage.Serialization;
+using VRage.Sync;
 using VRageMath;
 
 namespace SpaceEngineers.Game.Entities.Blocks
@@ -54,21 +55,22 @@ namespace SpaceEngineers.Game.Entities.Blocks
         List<MyUseObjectPanelButton> m_buttonsUseObjects = new List<MyUseObjectPanelButton>();
         StringBuilder m_emptyName = new StringBuilder("");
 
-        Vector3D m_previusPosition = Vector3D.Zero;
-
         bool m_syncing = false;
 
         public MyButtonPanel()
         {
+#if XB1 // XB1_SYNC_NOREFLECTION
+            m_anyoneCanUse = SyncType.CreateAndAddProp<bool>();
+#endif // XB1
             CreateTerminalControls();
             m_openedToolbars = new List<MyToolbar>();
         }
 
-        static void CreateTerminalControls()
+        protected override void CreateTerminalControls()
         {
             if (MyTerminalControlFactory.AreControlsCreated<MyButtonPanel>())
                 return;
-
+            base.CreateTerminalControls();
             var checkAccess = new MyTerminalControlCheckbox<MyButtonPanel>("AnyoneCanUse", MySpaceTexts.BlockPropertyText_AnyoneCanUse, MySpaceTexts.BlockPropertyDescription_AnyoneCanUse);
             checkAccess.Getter = (x) => x.AnyoneCanUse;
             checkAccess.Setter = (x, v) => x.AnyoneCanUse = v;
@@ -155,7 +157,7 @@ namespace SpaceEngineers.Game.Entities.Blocks
                 m_customButtonNames = ob.CustomButtonNames;
             }
 
-            NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME | MyEntityUpdateEnum.EACH_FRAME;
+            NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
 
             UseObjectsComponent.GetInteractiveObjects<MyUseObjectPanelButton>(m_buttonsUseObjects);
         }
@@ -381,20 +383,6 @@ namespace SpaceEngineers.Game.Entities.Blocks
             return item;
         }
 
-        public override void UpdateAfterSimulation()
-        {
-            base.UpdateAfterSimulation();
-            if (m_previusPosition != PositionComp.GetPosition())
-            {
-                m_previusPosition = PositionComp.GetPosition();
-                foreach (var button in m_buttonsUseObjects)
-                {
-                    button.UpdateMarkerPosition();
-                }
-            }
-            
-        }
-
         [Event, Reliable, Server, Broadcast]
         void SendToolbarItemChanged(ToolbarItem sentItem, int index)
         {
@@ -406,6 +394,16 @@ namespace SpaceEngineers.Game.Entities.Blocks
             }
             Toolbar.SetItemAtIndex(index, item);
             m_syncing = false;
+        }
+
+        protected override void WorldPositionChanged(object source)
+        {
+            base.WorldPositionChanged(source);
+
+            foreach (var button in m_buttonsUseObjects)
+            {
+                button.UpdateMarkerPosition();
+            }
         }
     }
 }

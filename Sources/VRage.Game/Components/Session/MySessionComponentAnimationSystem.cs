@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using VRage.Animations;
+using VRageRender.Animations;
 using VRage.FileSystem;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
@@ -10,6 +10,7 @@ using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders;
 using VRage.Generics;
 using VRage.ObjectBuilders;
+using VRage.Profiler;
 using VRage.Utils;
 
 namespace VRage.Game.SessionComponents
@@ -49,8 +50,10 @@ namespace VRage.Game.SessionComponents
             m_skinnedEntityComponentsToRemove.Clear();
             MySessionComponentAnimationSystem.Static = this;
 
+#if !XB1
             if (!MySessionComponentExtDebug.Static.IsHandlerRegistered(LiveDebugging_ReceivedMessageHandler))
                 MySessionComponentExtDebug.Static.ReceivedMsg += LiveDebugging_ReceivedMessageHandler;
+#endif // !XB1
         }
 
         protected override void UnloadData()
@@ -85,7 +88,9 @@ namespace VRage.Game.SessionComponents
                 skinnedEntityComp.Update();
             ProfilerShort.End();
 
+#if !XB1
             LiveDebugging();
+#endif // !XB1
         }
 
         /// <summary>
@@ -112,6 +117,7 @@ namespace VRage.Game.SessionComponents
 
         // --------------- LIVE DEBUGGING -----------------------------------------------------------------
 
+#if !XB1
         private void LiveDebugging()
         {
             if (Session == null || MySessionComponentExtDebug.Static == null/* || !MySessionComponentExtDebug.Static.HasClients*/)
@@ -280,6 +286,7 @@ namespace VRage.Game.SessionComponents
                 }
             }
         }
+#endif // !XB1
         // --------------------------------------------------------------------------------------------
 
         /// <summary>

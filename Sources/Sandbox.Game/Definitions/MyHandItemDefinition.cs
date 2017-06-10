@@ -26,6 +26,7 @@ namespace Sandbox.Definitions
         public Matrix ItemWalkingLocation3rd;
         public Matrix ItemShootLocation;
         public Matrix ItemShootLocation3rd;
+        public Matrix ItemIronsightLocation;
 
         public float BlendTime;
 
@@ -38,7 +39,7 @@ namespace Sandbox.Definitions
         public float ZAmplitudeScale;
 
         public float RunMultiplier;
-        public float AmplitudeMultiplier3rd;
+        public float AmplitudeMultiplier3rd = 1.0f;
 
         public bool SimulateLeftHand = true;
         public bool SimulateRightHand = true;
@@ -70,6 +71,7 @@ namespace Sandbox.Definitions
         public MyItemPositioningEnum ItemPositioningShoot3rd = MyItemPositioningEnum.TransformFromData;
 
         public List<ToolSound> ToolSounds;
+        public MyStringHash ToolMaterial;
 
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
         {
@@ -123,6 +125,9 @@ namespace Sandbox.Definitions
             ItemShootLocation3rd.Translation = ob.ItemShootPosition3rd;
             ShootBlend = ob.ShootBlend;
 
+            ItemIronsightLocation = Matrix.CreateFromQuaternion(Quaternion.Normalize(ob.ItemIronsightOrientation));
+            ItemIronsightLocation.Translation = ob.ItemIronsightPosition;
+
             MuzzlePosition = ob.MuzzlePosition;
 
             ShootScatter = ob.ShootScatter;
@@ -139,6 +144,7 @@ namespace Sandbox.Definitions
             ShakeAmountNoTarget = ob.ShakeAmountNoTarget;
 
             ToolSounds = ob.ToolSounds;
+            ToolMaterial = MyStringHash.GetOrCompute(ob.ToolMaterial);
 
             ItemPositioning = ob.ItemPositioning;
             ItemPositioning3rd = ob.ItemPositioning3rd;
@@ -150,7 +156,7 @@ namespace Sandbox.Definitions
 
         public override MyObjectBuilder_DefinitionBase GetObjectBuilder()
         {
-            var ob = MyObjectBuilderSerializer.CreateNewObject<MyObjectBuilder_HandItemDefinition>();
+            var ob = (MyObjectBuilder_HandItemDefinition)base.GetObjectBuilder();
             
             ob.Id = Id;
 
@@ -199,6 +205,9 @@ namespace Sandbox.Definitions
 
             ob.ShootBlend = ShootBlend;
 
+            ob.ItemIronsightOrientation = Quaternion.CreateFromRotationMatrix(ItemIronsightLocation);
+            ob.ItemIronsightPosition = ItemIronsightLocation.Translation;
+
             ob.MuzzlePosition = MuzzlePosition;
 
             ob.ShootScatter = ShootScatter;
@@ -215,6 +224,7 @@ namespace Sandbox.Definitions
             ob.ShakeAmountNoTarget = ShakeAmountNoTarget;
 
             ob.ToolSounds = ToolSounds;
+            ob.ToolMaterial = ToolMaterial.ToString();
 
             ob.ItemPositioning = ItemPositioning;
             ob.ItemPositioning3rd = ItemPositioning3rd;

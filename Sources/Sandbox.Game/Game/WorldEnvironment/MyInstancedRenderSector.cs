@@ -1,10 +1,13 @@
-﻿ using System;
+﻿using System;
 using System.Collections.Generic;
 using Sandbox.Definitions;
+using VRage;
 using VRage.Game.Models;
 using VRage.Import;
 using VRageMath;
 using VRageRender;
+using VRageRender.Import;
+using VRageRender.Messages;
 
 namespace Sandbox.Game.WorldEnvironment
 {
@@ -107,7 +110,7 @@ namespace Sandbox.Game.WorldEnvironment
                     }
 
                     MyRenderProxy.UpdateRenderInstanceBufferRange(InstanceBufferId, Instances);
-                    MyRenderProxy.UpdateRenderInstanceBufferSettings(InstanceBufferId, -1, m_parent.Lod == 0);
+                    MyRenderProxy.UpdateRenderInstanceBufferSettings(InstanceBufferId, m_parent.Lod == 0);
                     MyRenderProxy.SetInstanceBuffer(RenderObjectId, InstanceBufferId, 0, Instances.Length, bounds);
 
                     MyRenderProxy.UpdateRenderObject(RenderObjectId, ref m_parent.WorldMatrix, false, (BoundingBoxD)bounds);
@@ -124,7 +127,7 @@ namespace Sandbox.Game.WorldEnvironment
                         {
                             MatrixD matrix = instances[i].LocalMatrix * m_parent.WorldMatrix;
                             var bounds = (BoundingBoxD)ModelBb;
-                            bounds = bounds.Transform(ref matrix);
+                            bounds = bounds.TransformFast(ref matrix);
 
                             //bounds.Translate(m_parent.WorldMatrix.Translation);
 

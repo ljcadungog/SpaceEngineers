@@ -26,6 +26,7 @@ using VRage.Game;
 using VRage.ObjectBuilders;
 using Sandbox.Game.Multiplayer;
 using Sandbox.ModAPI.Weapons;
+using VRage.Audio;
 
 #endregion
 
@@ -114,7 +115,7 @@ namespace Sandbox.Game.Weapons
                 }
                 else
                 {
-                    if (!MySession.Static.Battle && MySession.Static.IsAdminModeEnabled(Sync.MyId)==false)
+                    if (!MySession.Static.CreativeToolsEnabled(Sync.MyId))
                         OnMissingComponents(definition);
                 }
             }
@@ -157,8 +158,8 @@ namespace Sandbox.Game.Weapons
             }
             else
             {
-                if (MyPerGameSettings.CheckUseAnimationInsteadOfIK())
-                    character.PlayCharacterAnimation("Building_pose", MyBlendOption.Immediate, MyFrameOption.Loop, 0.2f);
+                //if (MyPerGameSettings.CheckUseAnimationInsteadOfIK())
+                //    character.PlayCharacterAnimation("Building_pose", MyBlendOption.Immediate, MyFrameOption.Loop, 0.2f);
             }
         }
 
@@ -183,15 +184,19 @@ namespace Sandbox.Game.Weapons
 
             if (Owner != null)
             {
-                if (MyPerGameSettings.CheckUseAnimationInsteadOfIK())
+                if (owner.UseNewAnimationSystem)
                 {
-                    Owner.PlayCharacterAnimation("Building_pose", MyBlendOption.Immediate, MyFrameOption.Loop, 0.2f);
                     Owner.TriggerCharacterAnimationEvent("building", false);
                 }
-                if (Owner.ControllerInfo.IsLocallyHumanControlled())
+                else
                 {
-                    BlockBuilder.Activate();
+                    Owner.PlayCharacterAnimation("Building_pose", MyBlendOption.Immediate, MyFrameOption.Loop, 0.2f);
                 }
+
+                //if (Owner.ControllerInfo.IsLocallyHumanControlled())
+                //{
+                //    BlockBuilder.Activate();
+                //}
             }
         }
 

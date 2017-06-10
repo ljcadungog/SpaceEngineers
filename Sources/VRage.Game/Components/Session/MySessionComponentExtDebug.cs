@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !XB1
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -6,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using VRage.Collections;
 using VRage.Game.Components;
+using VRage.Profiler;
 using VRage.Utils;
 
 namespace VRage.Game.SessionComponents
@@ -178,16 +180,16 @@ namespace VRage.Game.SessionComponents
             try
             {
 #if OFFICIAL_BUILD == true
-                m_listener = new TcpListener(IPAddress.Loopback, GameDebugPort) {ExclusiveAddressUse = false};
+            m_listener = new TcpListener(IPAddress.Loopback, GameDebugPort) {ExclusiveAddressUse = false};
 #else
-                m_listener = new TcpListener(IPAddress.Any, GameDebugPort) { ExclusiveAddressUse = false };
+            m_listener = new TcpListener(IPAddress.Any, GameDebugPort) { ExclusiveAddressUse = false };
 #endif
                 m_listener.Start();
             }
-            catch (SocketException e)
+            catch (SocketException ex)
             {
                 MyLog.Default.WriteLine("Cannot start debug listener.");
-                MyLog.Default.WriteLine(e);
+                MyLog.Default.WriteLine(ex);
                 m_listener = null;
                 m_active = false;
                 return;
@@ -220,7 +222,8 @@ namespace VRage.Game.SessionComponents
                     }
                     else
                     {
-                        MyLog.Default.WriteLine(e);
+                        if (MyLog.Default != null && MyLog.Default.LogEnabled)
+                            MyLog.Default.WriteLine(e);
                         break;
                     }
                 }
@@ -329,3 +332,4 @@ namespace VRage.Game.SessionComponents
         }
     }
 }
+#endif // !XB1

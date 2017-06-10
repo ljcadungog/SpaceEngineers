@@ -25,6 +25,8 @@ using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI.Ingame;
 using VRage.Network;
+using VRage.Profiler;
+using VRage.Sync;
 using VRage.Utils;
 
 namespace Sandbox.Game.Entities.Cube
@@ -174,7 +176,7 @@ namespace Sandbox.Game.Entities.Cube
 
         protected override bool CheckIsWorking()
         {
-			return ResourceSink.IsPowered && base.CheckIsWorking();
+            return ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId) && base.CheckIsWorking();
         }
 
         #endregion Properties
@@ -196,22 +198,25 @@ namespace Sandbox.Game.Entities.Cube
 
         public MyProductionBlock()
         {
+#if XB1 // XB1_SYNC_NOREFLECTION
+            m_useConveyorSystem = SyncType.CreateAndAddProp<bool>();
+#endif // XB1
             CreateTerminalControls();
 
             m_soundEmitter = new MyEntity3DSoundEmitter(this, true);
             m_queue = new List<QueueItem>();
 
-            NeedsUpdate |= MyEntityUpdateEnum.EACH_10TH_FRAME | MyEntityUpdateEnum.EACH_100TH_FRAME;
+            NeedsUpdate |= MyEntityUpdateEnum.EACH_10TH_FRAME;
 
             IsProducing = false;
             Components.ComponentAdded += OnComponentAdded;
         }
 
-        static void CreateTerminalControls()
+        protected override void CreateTerminalControls()
         {
             if (MyTerminalControlFactory.AreControlsCreated<MyProductionBlock>())
                 return;
-
+            base.CreateTerminalControls();
             var useConveyorSystem = new MyTerminalControlOnOffSwitch<MyProductionBlock>("UseConveyor", MySpaceTexts.Terminal_UseConveyorSystem);
             useConveyorSystem.Getter = (x) => x.UseConveyorSystem;
             useConveyorSystem.Setter = (x, v) => x.UseConveyorSystem = v;
@@ -288,6 +293,9 @@ namespace Sandbox.Game.Entities.Cube
                     if (deserializedItem.Blueprint != null)
                     {
                         m_queue.Add(deserializedItem);
+                    }
+                    else
+                    {
                         MySandboxGame.Log.WriteLine(string.Format("Could not add item into production block's queue: Blueprint {0} was not found.", item.Id));
                     }
                 }
@@ -713,7 +721,7 @@ namespace Sandbox.Game.Entities.Cube
         {
             ProfilerShort.Begin("UpdateProduction");
             int currentTime = MySandboxGame.TotalGamePlayTimeInMilliseconds;
-			if (ResourceSink.IsPowered)
+            if (ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId))
             {
                 UpdateProduction(currentTime - m_lastUpdateTime);
             }
@@ -736,13 +744,6 @@ namespace Sandbox.Game.Entities.Cube
         {
             base.UpdateBeforeSimulation10();
             UpdateProduction();
-        }
-
-        public override void UpdateBeforeSimulation100()
-        {
-            base.UpdateBeforeSimulation100();
-            if (m_soundEmitter != null)
-                m_soundEmitter.Update();
         }
 
         #region Inventory
@@ -857,7 +858,7 @@ namespace Sandbox.Game.Entities.Cube
      
         private float ComputeRequiredPower()
         {
-            return (Enabled && IsFunctional) ? (IsProducing) ? GetOperationalPowerConsumption()
+            return (Enabled && IsFunctional) ? (IsProducing || !IsQueueEmpty) ? GetOperationalPowerConsumption()
                                                              : ProductionBlockDefinition.StandbyPowerConsumption
                                              : 0.0f;
         }
@@ -869,7 +870,7 @@ namespace Sandbox.Game.Entities.Cube
 
         private void Receiver_IsPoweredChanged()
         {
-			if (!ResourceSink.IsPowered)
+            if (!ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId))
                 IsProducing = false;
             UpdateIsWorking();
         }

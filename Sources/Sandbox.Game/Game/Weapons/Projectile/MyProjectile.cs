@@ -27,6 +27,7 @@ using VRage.Game;
 using VRage.Game.ModAPI.Interfaces;
 using VRage.Game.ModAPI;
 using VRage.Library.Collections;
+using VRage.Profiler;
 
 namespace Sandbox.Game.Weapons
 {
@@ -69,10 +70,11 @@ namespace Sandbox.Game.Weapons
         float m_maxTrajectory;
 
         Vector3D m_position;
-        MyEntity m_ignoreEntity;
+        MyEntity[] m_ignoredEntities;
         MyEntity m_weapon;
 
         MyCharacterHitInfo m_charHitInfo;
+        MyCubeGridHitInfo m_cubeGridHitInfo;
 
         public float LengthMultiplier = 1;
 
@@ -102,13 +104,13 @@ namespace Sandbox.Game.Weapons
         //  This method realy initiates/starts the missile
         //  IMPORTANT: Direction vector must be normalized!
         // Projectile count multiplier - when real rate of fire it 45, but we shoot only 10 projectiles as optimization count multiplier will be 4.5
-        public void Start(MyProjectileAmmoDefinition ammoDefinition, MyEntity ignoreEntity, Vector3D origin, Vector3 initialVelocity, Vector3 directionNormalized, MyEntity weapon)
+        public void Start(MyProjectileAmmoDefinition ammoDefinition, MyEntity[] ignoreEntities, Vector3D origin, Vector3 initialVelocity, Vector3 directionNormalized, MyEntity weapon)
         {
             VRageRender.MyRenderProxy.GetRenderProfiler().StartProfilingBlock("Projectile.Start");
 
             m_projectileAmmoDefinition = ammoDefinition;
             m_state = MyProjectileStateEnum.ACTIVE;
-            m_ignoreEntity = ignoreEntity;
+            m_ignoredEntities = ignoreEntities;  // store ref to ignored entities
             m_origin = origin + 0.1 * (Vector3D)directionNormalized;
             m_position = m_origin;
             m_weapon = weapon;
@@ -167,8 +169,12 @@ namespace Sandbox.Game.Weapons
         /// </summary>
         private bool IsIgnoredEntity(IMyEntity entity)
         {
-            return m_ignoreEntity == entity || ((m_ignoreEntity is IMyGunBaseUser) && (m_ignoreEntity as IMyGunBaseUser).Owner is MyCharacter
-                && (m_ignoreEntity as IMyGunBaseUser).Owner == entity);
+            if (m_ignoredEntities != null)
+                foreach (var ignored in m_ignoredEntities)
+                    if (entity == ignored)
+                        return true;
+
+            return false;
         }
         
         //  Update position, check collisions, etc.
@@ -208,11 +214,10 @@ namespace Sandbox.Game.Weapons
             m_positionChecked = true;
 
             IMyEntity entity;
-            Vector3D hitPosition;
-            Vector3 hitNormal;
-            MyCharacterHitInfo charHitInfo;
-            GetHitEntityAndPosition(line, out entity, out hitPosition, out hitNormal, out charHitInfo);
-            if (entity == null || entity == m_ignoreEntity || entity.Physics == null)
+            MyHitInfo hitInfo;
+            object customdata;
+            GetHitEntityAndPosition(line, out entity, out hitInfo, out customdata);
+            if (entity == null || entity.Physics == null)
                 return true;
 
             if (IsIgnoredEntity(entity))
@@ -230,10 +235,10 @@ namespace Sandbox.Game.Weapons
                 if (stoppableTool != null)
                     stoppableTool.StopShooting(OwnerEntity);
 
-                headShot = charHitInfo.HitHead && m_projectileAmmoDefinition.HeadShot; // allow head shots only for ammo supporting it in definition
+                headShot = (customdata as MyCharacterHitInfo).HitHead && m_projectileAmmoDefinition.HeadShot; // allow head shots only for ammo supporting it in definition
             }
 
-            m_position = hitPosition;
+            m_position = hitInfo.Position;
 
             bool isProjectileGroupKilled = false;
 
@@ -241,31 +246,27 @@ namespace Sandbox.Game.Weapons
             {
                 MySurfaceImpactEnum surfaceImpact;
                 MyStringHash materialType;
-                GetSurfaceAndMaterial(entity, ref  hitPosition, out surfaceImpact, out materialType);
+                GetSurfaceAndMaterial(entity, ref line, ref hitInfo.Position, out surfaceImpact, out materialType);
 
-                PlayHitSound(materialType, entity, hitPosition, m_projectileAmmoDefinition.PhysicalMaterial);
+                PlayHitSound(materialType, entity, hitInfo.Position, m_projectileAmmoDefinition.PhysicalMaterial);
 
-                MyHitInfo hitInfo = new MyHitInfo();
-                hitInfo.Normal = hitNormal;
-                hitInfo.Position = hitPosition;
                 hitInfo.Velocity = m_velocity;
 
-                float damage = headShot ? m_projectileAmmoDefinition.ProjectileHeadShotDamage : m_projectileAmmoDefinition.ProjectileMassDamage;
-                DoDamage(damage, hitInfo, charHitInfo, entity);
+                float damage = entity is IMyCharacter ? (headShot ? m_projectileAmmoDefinition.ProjectileHeadShotDamage : m_projectileAmmoDefinition.ProjectileHealthDamage) : m_projectileAmmoDefinition.ProjectileMassDamage;
+                DoDamage(damage, hitInfo, customdata, entity);
+
+                MyDecals.HandleAddDecal(entity, hitInfo, materialType, m_projectileAmmoDefinition.PhysicalMaterial, (customdata as MyCharacterHitInfo), damage);
 
                 //particle effect defined in materialProperties.sbc
-                Vector3D particleHitPosition = hitPosition + line.Direction * -0.2;
-                if (MyMaterialPropertiesHelper.Static.TryCreateCollisionEffect(MyMaterialPropertiesHelper.CollisionType.Hit, particleHitPosition, hitNormal, m_projectileAmmoDefinition.PhysicalMaterial, materialType) == false)
-                {
-                    //default effect when none other was found
-                    if (surfaceImpact != MySurfaceImpactEnum.CHARACTER)
-                        MyParticleEffects.CreateBasicHitParticles(m_projectileAmmoDefinition.ProjectileOnHitEffectName, ref hitPosition, ref hitNormal, ref line.Direction, entity, m_weapon, 1, OwnerEntity);
-                }
-
+                Vector3D particleHitPosition = hitInfo.Position + (Vector3D)line.Direction * -0.2;
+                bool createdEffect = MyMaterialPropertiesHelper.Static.TryCreateCollisionEffect(MyMaterialPropertiesHelper.CollisionType.Hit, particleHitPosition, hitInfo.Normal, m_projectileAmmoDefinition.PhysicalMaterial, materialType);
+                if (!createdEffect && surfaceImpact != MySurfaceImpactEnum.CHARACTER)
+                    MyParticleEffects.CreateBasicHitParticles(m_projectileAmmoDefinition.ProjectileOnHitEffectName, ref hitInfo.Position, ref hitInfo.Normal, ref line.Direction, entity, m_weapon, 1, OwnerEntity);
+                
                 CreateDecal(materialType);
 
                 if (m_weapon == null || (entity.GetTopMostParent() != m_weapon.GetTopMostParent()))
-                    ApplyProjectileForce(entity, hitPosition, m_directionNormalized, false, m_projectileAmmoDefinition.ProjectileHitImpulse * m_impulseMultiplier);
+                    ApplyProjectileForce(entity, hitInfo.Position, m_directionNormalized, false, m_projectileAmmoDefinition.ProjectileHitImpulse * m_impulseMultiplier);
 
                 StopEffect();
                 m_state = MyProjectileStateEnum.KILLED;
@@ -274,11 +275,11 @@ namespace Sandbox.Game.Weapons
             return true;
         }
 
-        private void GetHitEntityAndPosition(LineD line, out IMyEntity entity, out Vector3D hitPosition, out Vector3 hitNormal, out MyCharacterHitInfo charHitInfo)
+        private void GetHitEntityAndPosition(LineD line, out IMyEntity entity, out MyHitInfo hitInfoRet, out object customdata)
         {
             entity = null;
-            hitPosition = hitNormal = Vector3.Zero;
-            charHitInfo = null;
+            hitInfoRet = new MyHitInfo();
+            customdata = null;
 
             // 1. rough raycast
             int raycastListIndex = 0;
@@ -301,8 +302,9 @@ namespace Sandbox.Game.Weapons
                         MyPhysics.HitInfo hitInfo = m_raycastResult[raycastListIndex];
 
                         entity = hitInfo.HkHitInfo.GetHitEntity() as MyEntity;
-                    	hitPosition = hitInfo.Position;
-                    	hitNormal = hitInfo.HkHitInfo.Normal;
+                        hitInfoRet.Position = hitInfo.Position;
+                        hitInfoRet.Normal = hitInfo.HkHitInfo.Normal;
+                        hitInfoRet.ShapeKey = hitInfo.HkHitInfo.GetShapeKey(0);
                     }
                 }
 
@@ -310,7 +312,7 @@ namespace Sandbox.Game.Weapons
                 if (!(entity is MyCharacter) || entity == null)
                 {
                     // first: raycast, get all entities in line, limit distance if possible
-                    LineD lineLimited = new LineD(line.From, entity == null ? line.To : hitPosition);
+                    LineD lineLimited = new LineD(line.From, entity == null ? line.To : hitInfoRet.Position);
                     if (m_entityRaycastResult == null)
                     {
                         m_entityRaycastResult = new List<MyLineSegmentOverlapResult<MyEntity>>(16);
@@ -338,9 +340,9 @@ namespace Sandbox.Game.Weapons
                                 {
                                     bestDistanceSq = distanceSq;
                                     entityBest = hitCharacter;
-                                    hitPosition = m_charHitInfo.Triangle.IntersectionPointInWorldSpace;
-                                    hitNormal = m_charHitInfo.Triangle.NormalInWorldSpace;
-                                    charHitInfo = m_charHitInfo;
+                                    hitInfoRet.Position = m_charHitInfo.Triangle.IntersectionPointInWorldSpace;
+                                    hitInfoRet.Normal = m_charHitInfo.Triangle.NormalInWorldSpace;
+                                    customdata = m_charHitInfo;
                                 }
                             }
                         }
@@ -363,40 +365,48 @@ namespace Sandbox.Game.Weapons
                     bool intersection = hitCharacter.GetIntersectionWithLine(ref line, ref m_charHitInfo);
                     if (intersection)
                     {
-                        hitPosition = m_charHitInfo.Triangle.IntersectionPointInWorldSpace;
-                        hitNormal = m_charHitInfo.Triangle.NormalInWorldSpace;
-                        charHitInfo = m_charHitInfo;
+                        hitInfoRet.Position = m_charHitInfo.Triangle.IntersectionPointInWorldSpace;
+                        hitInfoRet.Normal = m_charHitInfo.Triangle.NormalInWorldSpace;
+                        customdata = m_charHitInfo;
                     }
                     else
                     {
                         entity = null; // no hit.
                     }
                 }
-                else if (entity is MyGhostCharacter)
-                {
-                    MyHitInfo info = new MyHitInfo();
-                    info.Position = hitPosition;
-                    info.Normal = hitNormal;
-                }
                 else
                 {
                     MyCubeGrid grid = entity as MyCubeGrid;
                     if (grid != null)
                     {
-                        MyIntersectionResultLineTriangleEx? result;
-                        bool success = grid.GetIntersectionWithLine(ref line, out result);
-                        if (success && result.HasValue)
+                        bool success = grid.GetIntersectionWithLine(ref line, ref m_cubeGridHitInfo);
+                        if (success)
                         {
-                            hitPosition = result.Value.IntersectionPointInWorldSpace;
-                            hitNormal = result.Value.NormalInWorldSpace;
-                            if (Vector3.Dot(hitNormal, line.Direction) > 0)
-                                hitNormal = -hitNormal;
+                            hitInfoRet.Position = m_cubeGridHitInfo.Triangle.IntersectionPointInWorldSpace;
+                            hitInfoRet.Normal = m_cubeGridHitInfo.Triangle.NormalInWorldSpace;
+                            if (Vector3.Dot(hitInfoRet.Normal, line.Direction) > 0)
+                                hitInfoRet.Normal = -hitInfoRet.Normal;
+
+                            customdata = m_cubeGridHitInfo;
                         }
 
                         MyHitInfo info = new MyHitInfo();
-                        info.Position = hitPosition;
-                        info.Normal = hitNormal;
+                        info.Position = hitInfoRet.Position;
+                        info.Normal = hitInfoRet.Normal;
                     }
+
+                    MyVoxelBase voxel = entity as MyVoxelBase;
+                    if (voxel != null)
+                    { //get accurate hit because of particles and decals
+                        MyIntersectionResultLineTriangleEx? res;
+                        if (voxel.GetIntersectionWithLine(ref line, out res, IntersectionFlags.DIRECT_TRIANGLES))
+                        {
+                            hitInfoRet.Position = res.Value.IntersectionPointInWorldSpace;
+                            hitInfoRet.Normal = res.Value.NormalInWorldSpace;
+                            hitInfoRet.ShapeKey = 0;
+                        }
+                    }
+
                 }
 
             } while (entity == null && ++raycastListIndex < m_entityRaycastResult.Count);
@@ -410,8 +420,6 @@ namespace Sandbox.Game.Weapons
             {
                 MySession.Static.TotalDamageDealt += (uint)damage;
             }
-
-            MyDecals.HandleAddDecal(damagedEntity, hitInfo, m_projectileAmmoDefinition.PhysicalMaterial, customdata, damage);
 
             if (!Sync.IsServer)
                 return;
@@ -483,7 +491,7 @@ namespace Sandbox.Game.Weapons
                 return result;
         }
 
-        private static void GetSurfaceAndMaterial(IMyEntity entity, ref Vector3D hitPosition, out MySurfaceImpactEnum surfaceImpact, out MyStringHash materialType)
+        private static void GetSurfaceAndMaterial(IMyEntity entity, ref LineD line, ref Vector3D hitPosition, out MySurfaceImpactEnum surfaceImpact, out MyStringHash materialType)
         {
             var voxelBase = entity as MyVoxelBase;
             if (voxelBase != null)
@@ -526,23 +534,38 @@ namespace Sandbox.Game.Weapons
                 materialType = MyMaterialType.METAL;
                 if (entity is MyCubeGrid)
                 {
-                    Vector3I blockPos;
                     var grid = (entity as MyCubeGrid);
                     if (grid != null)
                     {
-                        grid.FixTargetCube(out blockPos, Vector3D.Transform(hitPosition, grid.PositionComp.WorldMatrixNormalizedInv) / grid.GridSize);
-                        var block = grid.GetCubeBlock(blockPos);
+                        var block = grid.GetTargetedBlock(hitPosition);
                         if (block != null)
                         {
-                            if (block.BlockDefinition.PhysicalMaterial != null)
+                            if (block.BlockDefinition.PhysicalMaterial != null && !block.BlockDefinition.PhysicalMaterial.Id.TypeId.IsNull)
                             {
                                 materialType = MyStringHash.GetOrCompute(block.BlockDefinition.PhysicalMaterial.Id.SubtypeName);
                             }
+                            else
+                            {
+                                if (block.FatBlock != null)
+                                {
+                                    MyIntersectionResultLineTriangleEx? res = null;
+                                    block.FatBlock.GetIntersectionWithLine(ref line, out res);
+                                    if (res.HasValue)
+                                    {
+                                        var technique = block.FatBlock.ModelCollision.GetDrawTechnique(res.Value.Triangle.TriangleIndex);
+                                        if (technique == VRageRender.Import.MyMeshDrawTechnique.GLASS)
+                                        {
+                                            materialType = MyStringHash.GetOrCompute("Glass");
+                                        }
+                                    }
+                                }
+                            }           
                         }
                     }
                 }
             }
-            if (materialType.GetHashCode() == 0) materialType = MyMaterialType.METAL;
+
+            System.Diagnostics.Debug.Assert(materialType.GetHashCode() != 0, "Unknown material");
         }
 
         private void StopEffect()
@@ -605,7 +628,10 @@ namespace Sandbox.Game.Weapons
 
                 var emitter = MyAudioComponent.TryGetSoundEmitter();
                 if (emitter == null)
+                {
+                    ProfilerShort.End();
                     return;
+                }
                 emitter.Entity = (MyEntity)entity;
                 emitter.SetPosition(m_position);
                 emitter.SetVelocity(Vector3.Zero);
@@ -684,19 +710,21 @@ namespace Sandbox.Game.Weapons
 
                 double projectileTrailLength = LengthMultiplier * m_projectileAmmoDefinition.ProjectileTrailScale;// PROJECTILE_POLYLINE_DESIRED_LENGTH;
 
-                projectileTrailLength *= MyUtils.GetRandomFloat(0.6f, 0.8f);
+                projectileTrailLength *= MyParticlesManager.Paused ? 0.6f : MyUtils.GetRandomFloat(0.6f, 0.8f);
 
                 if (trajectoryLength < projectileTrailLength)
                 {
                     projectileTrailLength = trajectoryLength;
                 }
 
-                previousPosition = m_position - projectileTrailLength * direction;
-
+                if (m_state == MyProjectileStateEnum.ACTIVE || trajectoryLength * trajectoryLength >= (m_velocity.LengthSquared() * VRage.Game.MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS * CHECK_INTERSECTION_INTERVAL))
+                    previousPosition = m_position - projectileTrailLength * direction;
+                else
+                    previousPosition = m_position - ((trajectoryLength - projectileTrailLength) * MyUtils.GetRandomFloat(0, 1) + projectileTrailLength) * direction;
 
                 //float color = MyMwcUtils.GetRandomFloat(1, 2);
-                float color = MyUtils.GetRandomFloat(1, 2);
-                float thickness = MyUtils.GetRandomFloat(0.2f, 0.3f) * m_projectileAmmoDefinition.ProjectileTrailScale;
+                float color = MyParticlesManager.Paused ? 1 : MyUtils.GetRandomFloat(1, 2);
+                float thickness = (MyParticlesManager.Paused ? 0.2f : MyUtils.GetRandomFloat(0.2f, 0.3f)) * m_projectileAmmoDefinition.ProjectileTrailScale;
 
                 //  Line particles (polyline) don't look good in distance. Start and end aren't rounded anymore and they just
                 //  look like a pieces of paper. Especially when zoom-in.
@@ -723,7 +751,7 @@ namespace Sandbox.Game.Weapons
         public void Close()
         {
             OwnerEntity = null;
-            m_ignoreEntity = null;
+            m_ignoredEntities = null;
             m_weapon = null;
 
             //  Don't stop sound

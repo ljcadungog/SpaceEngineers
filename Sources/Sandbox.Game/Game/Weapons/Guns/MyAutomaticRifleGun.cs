@@ -2,6 +2,9 @@
 
 using System;
 using System.Text;
+#if XB1
+using System.Collections.Generic;
+#endif // XB1
 using VRageMath;
 using Sandbox.Game.Entities;
 using Sandbox.Engine.Utils;
@@ -19,10 +22,10 @@ using System.Diagnostics;
 using Sandbox.Game.GUI;
 using Sandbox.ModAPI.Interfaces;
 using Sandbox.Game.Components;
+using Sandbox.Game.Entities.Character.Components;
 using VRage.ObjectBuilders;
 using VRage.ModAPI;
 using VRage;
-using VRage.Library.Sync;
 using VRage.Network;
 using VRage.Game.Models;
 using VRage.Game.Components;
@@ -30,6 +33,8 @@ using VRage.Game.Entity;
 using VRage.Game;
 using VRage.Game.ModAPI.Interfaces;
 using Sandbox.ModAPI.Weapons;
+using VRage.Audio;
+using VRage.Sync;
 
 #endregion
 
@@ -46,10 +51,13 @@ namespace Sandbox.Game.Weapons
         MyParticleEffect m_smokeEffect;
 
         MyGunBase m_gunBase;
-        MyDefinitionId m_handItemDefId;
+        static MyDefinitionId m_handItemDefId = new MyDefinitionId(typeof(MyObjectBuilder_PhysicalGunObject), "AutomaticRifleGun");
         MyPhysicalItemDefinition m_physicalItemDef;
 
         MyCharacter m_owner;
+
+        int m_shootingCounter;
+        public MyCharacter Owner { get { return m_owner; } }
 
         private bool m_canZoom = true;
 
@@ -79,24 +87,35 @@ namespace Sandbox.Game.Weapons
         private bool m_isAfterReleaseFire = false;
         public readonly SyncType SyncType;
 
+        private MyEntity[] m_shootIgnoreEntities;   // for projectiles to know which entities to ignore
+
         public MyAutomaticRifleGun()
         {
+            m_shootIgnoreEntities = new MyEntity[] {this};
+
             NeedsUpdate = MyEntityUpdateEnum.EACH_FRAME;
             Render.NeedsDraw = true;
+#if XB1 // XB1_SYNC_NOREFLECTION
+            SyncType = new SyncType(new List<SyncBase>());
+            m_gunBase = new MyGunBase(SyncType);
+#else // !XB1
             m_gunBase = new MyGunBase();
+#endif // !XB1
             m_soundEmitter = new MyEntity3DSoundEmitter(this);
             (PositionComp as MyPositionComponent).WorldPositionChanged = WorldPositionChanged;
             this.Render = new MyRenderComponentAutomaticRifle();
+#if !XB1 // !XB1_SYNC_NOREFLECTION
             SyncType = SyncHelpers.Compose(this);
             SyncType.Append(m_gunBase);
+#endif // !XB1
         }
 
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
+            if (objectBuilder.SubtypeName != null && objectBuilder.SubtypeName.Length > 0)
+                m_handItemDefId = new MyDefinitionId(typeof(MyObjectBuilder_AutomaticRifle), objectBuilder.SubtypeName);
+
             MyObjectBuilder_AutomaticRifle rifleBuilder = (MyObjectBuilder_AutomaticRifle)objectBuilder;
-            m_handItemDefId = rifleBuilder.GetId();
-            if (string.IsNullOrEmpty(m_handItemDefId.SubtypeName))
-                m_handItemDefId = new MyDefinitionId(typeof(MyObjectBuilder_AutomaticRifle), "RifleGun");
            
             var handItemDef = MyDefinitionManager.Static.TryGetHandItemDefinition(ref m_handItemDefId);
             m_physicalItemDef = MyDefinitionManager.Static.GetPhysicalItemForHandItem(m_handItemDefId);
@@ -154,7 +173,19 @@ namespace Sandbox.Game.Weapons
 
         public Vector3 DirectionToTarget(Vector3D target)
         {
-            Vector3D direction = Vector3D.Normalize(target - PositionComp.WorldMatrix.Translation);
+            MyCharacterWeaponPositionComponent weaponPositionComponent =
+                m_owner.Components.Get<MyCharacterWeaponPositionComponent>();
+
+            Vector3D direction;
+            if (weaponPositionComponent != null)
+            {
+                direction = Vector3D.Normalize(target - weaponPositionComponent.LogicalPositionWorld);
+            }
+            else
+            {
+                direction = Vector3D.Normalize(target - PositionComp.WorldMatrix.Translation);
+            }
+
             Vector3D gunDirection = m_owner.WeaponPosition.LogicalOrientationWorld;
             double d = Vector3D.Dot(direction, gunDirection);
             //Too big angle to target
@@ -257,6 +288,7 @@ namespace Sandbox.Game.Weapons
             {
                 IsShooting = false;
                 m_shotsFiredInBurst = 0;
+                m_gunBase.StopShoot();
             }
             else if (action == MyShootActionEnum.SecondaryAction)
             {
@@ -390,6 +422,8 @@ namespace Sandbox.Game.Weapons
             m_owner = owner;
             if (m_owner != null)
             {
+                m_shootIgnoreEntities = new MyEntity[] { this, m_owner };
+
                 var inventory = m_owner.GetInventory() as MyInventory;
                 System.Diagnostics.Debug.Assert(inventory != null, "Null or unexpected inventory type returned!");
                 if (inventory != null)
@@ -443,9 +477,9 @@ namespace Sandbox.Game.Weapons
 
         #region IMyGunBaseUser
 
-        MyEntity IMyGunBaseUser.IgnoreEntity
+        MyEntity[] IMyGunBaseUser.IgnoreEntities
         {
-            get { return this; }
+            get { return m_shootIgnoreEntities; }
         }
 
         MyEntity IMyGunBaseUser.Weapon
@@ -539,6 +573,12 @@ namespace Sandbox.Game.Weapons
             {
                 return m_gunBase.CurrentAmmo;
             }
+        }
+
+        public void UpdateSoundEmitter()
+        {
+            if (m_soundEmitter != null)
+                m_soundEmitter.Update();
         }
     }
 }

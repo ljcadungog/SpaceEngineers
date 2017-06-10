@@ -8,9 +8,6 @@ namespace VRage.Game.Components
     {
         private Dictionary<Type, MyComponentBase> m_components = new Dictionary<Type, MyComponentBase>();
 
-        [ThreadStatic]
-        private static List<KeyValuePair<Type, MyComponentBase>> m_tmpSerializedComponents;
-
         public void Add<T>(T component) where T : MyComponentBase
         {
             {
@@ -213,26 +210,25 @@ namespace VRage.Game.Components
 
         protected virtual void OnComponentRemoved(Type t, MyComponentBase component) { }
 
-        public MyObjectBuilder_ComponentContainer Serialize()
+        public MyObjectBuilder_ComponentContainer Serialize(bool copy = false)
         {
-            if (m_tmpSerializedComponents == null)
-                m_tmpSerializedComponents = new List<KeyValuePair<Type, MyComponentBase>>(8);
+            var tmpSerializedComponents = new List<KeyValuePair<Type, MyComponentBase>>(8);
 
-            m_tmpSerializedComponents.Clear();
+            tmpSerializedComponents.Clear();
             foreach (var component in m_components)
             {
                 if (component.Value.IsSerialized())
                 {
-                    m_tmpSerializedComponents.Add(component);
+                    tmpSerializedComponents.Add(component);
                 }
             }
 
-            if (m_tmpSerializedComponents.Count == 0) return null;
+            if (tmpSerializedComponents.Count == 0) return null;
 
             var builder = new MyObjectBuilder_ComponentContainer();
-            foreach (var component in m_tmpSerializedComponents)
+            foreach (var component in tmpSerializedComponents)
             {
-                MyObjectBuilder_ComponentBase componentBuilder = component.Value.Serialize();
+                MyObjectBuilder_ComponentBase componentBuilder = component.Value.Serialize(copy);
                 if (componentBuilder != null)
                 {
                     var data = new MyObjectBuilder_ComponentContainer.ComponentData();
@@ -242,7 +238,7 @@ namespace VRage.Game.Components
                 }
             }
 
-            m_tmpSerializedComponents.Clear();
+            tmpSerializedComponents.Clear();
             return builder;
         }
 
@@ -267,7 +263,7 @@ namespace VRage.Game.Components
                 if (hasComponent)
                 {
                     // If component is found then check also type because some components have default instances (MyNullGameLogicComponent)
-                    if (createdInstanceType != instance.GetType())
+                    if (createdInstanceType != instance.GetType() && createdInstanceType != typeof(MyHierarchyComponentBase))
                         hasComponent = false;
                 }
                 

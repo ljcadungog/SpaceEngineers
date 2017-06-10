@@ -475,12 +475,17 @@ namespace Sandbox.Game.Multiplayer
 
         private void RemovePlayerFromDictionary(PlayerId playerId)
         {
+            if (Sync.IsServer && m_players.ContainsKey(playerId) && MyVisualScriptLogicProvider.PlayerConnected != null)
+                MyVisualScriptLogicProvider.PlayerDisconnected(m_players[playerId].Identity.IdentityId);
             m_players.Remove(playerId);
             OnPlayersChanged(false, playerId);
         }
 
         private void AddPlayer(PlayerId playerId, MyPlayer newPlayer)
         {
+            if (Sync.IsServer && MyVisualScriptLogicProvider.PlayerConnected != null)
+                MyVisualScriptLogicProvider.PlayerConnected(newPlayer.Identity.IdentityId);
+            newPlayer.Identity.LastLoginTime = DateTime.Now;
             m_players.Add(playerId, newPlayer);
             OnPlayersChanged(true, playerId);
         }
@@ -563,7 +568,7 @@ namespace Sandbox.Game.Multiplayer
             {
                 return;
             }
-
+            m_missingControlledEntities.Remove(entityId);
             MyTrace.Send(TraceWindow.Multiplayer, "OnControlChanged to entity: " + entityId, playerId.ToString());
 
             Sync.Players.SetControlledEntityInternal(playerId, entity);
@@ -591,7 +596,9 @@ namespace Sandbox.Game.Multiplayer
             }
             else
             {
+#if !XB1_NOMULTIPLAYER
                 Sync.Players.CreateNewIdentity(displayName, identiyId, model: null);
+#endif // !XB1_NOMULTIPLAYER
             }
         }
 
@@ -707,7 +714,7 @@ namespace Sandbox.Game.Multiplayer
         {
             var localHumanPlayerId = new MyPlayer.PlayerId(Sync.MyId, 0);
             var playerId = new MyPlayer.PlayerId(clientSteamId, playerSerialId);
-            if (playerId == localHumanPlayerId && (!MyFakes.ENABLE_BATTLE_SYSTEM || !MySession.Static.Battle))
+            if (playerId == localHumanPlayerId)
             {
                 if (!MySession.Static.IsScenario || MySession.Static.OnlineMode == MyOnlineModeEnum.OFFLINE)
                     MyPlayerCollection.RequestLocalRespawn();
@@ -1067,12 +1074,14 @@ namespace Sandbox.Game.Multiplayer
             Debug.Assert(Sync.IsServer, "SetPlayerCharacter can be only called on the server!");
 
             newCharacter.SetPlayer(player);
+            if (MyVisualScriptLogicProvider.PlayerSpawned != null && !newCharacter.IsBot)
+                MyVisualScriptLogicProvider.PlayerSpawned(newCharacter.ControllerInfo.Controller.Player.Identity.IdentityId);
 
             if(spawnedBy != null)
             {
                 long relatedEntity = spawnedBy.EntityId;
                 Vector3 relativePosition = (newCharacter.WorldMatrix * MatrixD.Invert(spawnedBy.WorldMatrix)).Translation;
-               MyMultiplayer.RaiseEvent(newCharacter, x => x.SpawCharacterRelative, relatedEntity, relativePosition);   
+               MyMultiplayer.RaiseEvent(newCharacter, x => x.SpawnCharacterRelative, relatedEntity, relativePosition);   
             }           
         }
 
@@ -1099,6 +1108,15 @@ namespace Sandbox.Game.Multiplayer
             return m_players.Values;
         }
 
+        /// <summary>
+        /// Gets current online player count.
+        /// </summary>
+        /// <returns>Returns current online player count.</returns>
+        public int GetOnlinePlayerCount()
+        {
+            return m_players.Values.Count;
+        }
+
         public Dictionary<long, MyIdentity>.ValueCollection GetAllIdentities()
         {
             return m_allIdentities.Values;
@@ -1112,6 +1130,11 @@ namespace Sandbox.Game.Multiplayer
         public Dictionary<PlayerId, long>.KeyCollection GetAllPlayers()
         {
             return m_playerIdentityIds.Keys;
+        }
+
+        public DictionaryReader<PlayerId, long> GetAllPlayerIdentities()
+        {
+            return m_playerIdentityIds;
         }
 
         public void UpdatePlayerControllers(long controllerId)
@@ -1314,6 +1337,14 @@ namespace Sandbox.Game.Multiplayer
             var playerId = new PlayerId(steamId, serialId);
             m_playerIdentityIds.TryGetValue(playerId, out identityId);
             return identityId;
+        }
+
+        public ulong TryGetSteamId(long identityId)
+        {
+            PlayerId result;
+            if (!TryGetPlayerId(identityId, out result))
+                return 0;
+            return result.SteamId;
         }
 
         public void MarkIdentityAsNPC(long identityId)
@@ -1711,7 +1742,7 @@ namespace Sandbox.Game.Multiplayer
                 }
             }
 
-            if (Sync.IsServer)
+            if (Sync.IsServer && Sync.MyId != 0)
             {
                 MyMultiplayer.RaiseStaticEvent(s => MyPlayerCollection.OnIdentityCreated, addToNpcs, identity.IdentityId, identity.DisplayName);
             }
@@ -1838,6 +1869,7 @@ namespace Sandbox.Game.Multiplayer
         [Conditional("DEBUG")]
         public void WriteDebugInfo()
         {
+#if !XB1
             var trace = new StackTrace();
             var previousFrame = trace.GetFrame(1);
 
@@ -1859,6 +1891,7 @@ namespace Sandbox.Game.Multiplayer
             {
                 MyTrace.Send(TraceWindow.MultiplayerFiltered, entity.EntityId.ToString("X8"), entity.ToString());
             }
+#endif // !XB1
         }
 
         [Conditional("DEBUG")]

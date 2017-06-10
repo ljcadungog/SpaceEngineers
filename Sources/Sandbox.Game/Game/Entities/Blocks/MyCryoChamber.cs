@@ -26,6 +26,8 @@ using VRage.Game;
 using VRage.Game.ModAPI.Interfaces;
 using Sandbox.ModAPI;
 using VRage.Game.Entity;
+using VRage.Sync;
+using VRageRender.Import;
 
 namespace Sandbox.Game.Entities.Blocks
 {
@@ -62,6 +64,10 @@ namespace Sandbox.Game.Entities.Blocks
 
         public MyCryoChamber()
         {
+#if XB1 // XB1_SYNC_NOREFLECTION
+            m_attachedPlayerId = SyncType.CreateAndAddProp<MyPlayer.PlayerId?>();
+#endif // XB1
+
             ControllerInfo.ControlAcquired += OnCryoChamberControlAcquired;
             m_attachedPlayerId.ValueChanged += (x) => AttachedPlayerChanged();
         }
@@ -280,6 +286,8 @@ namespace Sandbox.Game.Entities.Blocks
             {
                 if (MySession.Static.CameraController is MyEntity)
                 {
+                    if (MyHudCameraOverlay.TextureName == null || MyHudCameraOverlay.TextureName != m_overlayTextureName)
+                        SetOverlay();
                     if (MyHudCameraOverlay.Enabled == false)
                     {
                         MyHudCameraOverlay.Enabled = true;

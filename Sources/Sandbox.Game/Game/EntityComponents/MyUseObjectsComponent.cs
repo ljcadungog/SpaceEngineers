@@ -15,6 +15,7 @@ using Sandbox.Definitions;
 using Sandbox.Game.EntityComponents;
 using VRage.Game;
 using VRage.Game.Models;
+using VRageRender.Import;
 
 namespace Sandbox.Game.Components
 {
@@ -232,23 +233,23 @@ namespace Sandbox.Game.Components
             m_detectorPhysics.OnWorldPositionChanged(obj);
         }
 
-        public override IMyUseObject RaycastDetectors(Vector3D worldFrom, Vector3D worldTo, out float distance)
+        public override IMyUseObject RaycastDetectors(Vector3D worldFrom, Vector3D worldTo, out float parameter)
         {
             var positionComp = Container.Get<MyPositionComponentBase>();
             var invWorld = positionComp.WorldMatrixNormalizedInv;
             var ray = new RayD(worldFrom, worldTo - worldFrom);
 
             IMyUseObject result = null;
-            distance = float.MaxValue;
+            parameter = float.MaxValue;
 
             foreach (var group in m_detectorInteractiveObjects)
             {
                 var m = group.Value.Matrix * positionComp.WorldMatrix;
                 var obb = new MyOrientedBoundingBoxD(m);
                 double? dist = obb.Intersects(ref ray);
-                if (dist.HasValue && dist.Value < distance)
+                if (dist.HasValue && dist.Value < parameter)
                 {
-                    distance = (float)dist.Value;
+                    parameter = (float)dist.Value;
                     result = group.Value.UseObject;
                 }
             }
@@ -302,7 +303,7 @@ namespace Sandbox.Game.Components
             return m_customAddedDetectors.Count > 0;
         }
 
-        public override VRage.Game.ObjectBuilders.ComponentSystem.MyObjectBuilder_ComponentBase Serialize()
+        public override MyObjectBuilder_ComponentBase Serialize(bool copy = false)
         {
             var builder = MyComponentFactory.CreateObjectBuilder(this) as MyObjectBuilder_UseObjectsComponent;
             builder.CustomDetectorsCount = (uint)m_customAddedDetectors.Count;

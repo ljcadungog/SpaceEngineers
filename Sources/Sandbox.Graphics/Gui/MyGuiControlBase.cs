@@ -5,7 +5,6 @@ using System.IO;
 using VRage;
 using VRage.Game;
 using VRage.Input;
-using VRage.Library.Utils;
 using VRage.Utils;
 using VRageMath;
 
@@ -162,6 +161,14 @@ namespace Sandbox.Graphics.GUI
             Top = Bottom = vertical;
         }
 
+        public MyGuiBorderThickness(float left, float right, float top, float bottom)
+        {
+            Left = left;
+            Right = right;
+            Top = top;
+            Bottom = bottom;
+        }
+
         public float HorizontalSum
         {
             get { return Left + Right; }
@@ -185,6 +192,11 @@ namespace Sandbox.Graphics.GUI
         public Vector2 BottomLeftOffset
         {
             get { return new Vector2(Left, -Bottom); }
+        }
+
+        public Vector2 BottomRightOffset
+        {
+            get { return new Vector2(-Right, -Bottom);}
         }
 
         public Vector2 SizeChange
@@ -215,6 +227,13 @@ namespace Sandbox.Graphics.GUI
         public struct NameChangedArgs
         {
             public string OldName;
+        }
+
+        private float m_alpha = 1;
+        public float Alpha
+        {
+            get { return m_alpha; }
+            set { m_alpha = value; }
         }
 
         private const bool DEBUG_CONTROL_FOCUS = false;
@@ -274,7 +293,9 @@ namespace Sandbox.Graphics.GUI
             private set;
         }
 
-        protected readonly MyGuiControls Elements;
+        public readonly MyGuiControls Elements;
+
+        public MyToolTips Tooltips { get { return m_toolTip; } }
 
         /// <summary>
         /// Position of control's center (normalized and relative to parent screen center (not left/top corner!!!))
@@ -477,7 +498,7 @@ namespace Sandbox.Graphics.GUI
         public bool IsMouseOver
         {
             get { return m_isMouseOver; }
-            private set { m_isMouseOver = value; }
+            set { m_isMouseOver = value; }
         }
 
         public bool CanHaveFocus
@@ -953,7 +974,7 @@ namespace Sandbox.Graphics.GUI
                 if (element.GetExclusiveInputHandler() == element)
                     continue;
 
-                element.Draw(transitionAlpha, backgroundTransitionAlpha);
+                element.Draw(transitionAlpha * element.Alpha, backgroundTransitionAlpha * element.Alpha);
             }
         }
 
@@ -1054,6 +1075,8 @@ namespace Sandbox.Graphics.GUI
 
             return Owner.GetNextFocusControl(this, forwardMovement);
         }
+
+        public virtual void Clear() { }
 
         public override string ToString()
         {

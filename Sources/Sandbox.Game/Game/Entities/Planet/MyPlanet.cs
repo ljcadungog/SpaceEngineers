@@ -1,5 +1,4 @@
-﻿using ParallelTasks;
-using Sandbox.Definitions;
+﻿using Sandbox.Definitions;
 using Sandbox.Engine.Utils;
 using Sandbox.Engine.Voxels;
 using Sandbox.Game.Components;
@@ -12,15 +11,19 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using VRage;
+using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.ModAPI;
+using VRage.Network;
 using VRage.ObjectBuilders;
+using VRage.Profiler;
 using VRage.Utils;
 using VRage.Voxels;
 using VRageMath;
 using VRageRender;
+using VRageRender.Messages;
 
 namespace Sandbox.Game.Entities
 {
@@ -47,6 +50,29 @@ namespace Sandbox.Game.Entities
         public bool SpherizeWithDistance;
         public MyPlanetGeneratorDefinition Generator;
         public bool UserCreated;
+        public bool InitializeComponents;
+
+        public override string ToString()
+        {
+            return "Planet init arguments: \nStorage name: " + (StorageName ?? "<null>")
+                   + "\n Storage: " + (Storage != null ? Storage.ToString() : "<null>")
+                   + "\n PositionMinCorner: " + PositionMinCorner
+                   + "\n Radius: " + Radius
+                   + "\n AtmosphereRadius: " + AtmosphereRadius
+                   + "\n MaxRadius: " + MaxRadius
+                   + "\n MinRadius: " + MinRadius
+                   + "\n HasAtmosphere: " + HasAtmosphere
+                   + "\n AtmosphereWavelengths: " + AtmosphereWavelengths
+                   + "\n GravityFalloff: " + GravityFalloff
+                   + "\n MarkAreaEmpty: " + MarkAreaEmpty
+                   + "\n AtmosphereSettings: " + AtmosphereSettings.ToString()
+                   + "\n SurfaceGravity: " + SurfaceGravity
+                   + "\n AddGps: " + AddGps
+                   + "\n SpherizeWithDistance: " + SpherizeWithDistance
+                   + "\n Generator: " + (Generator != null ? Generator.ToString() : "<null>")
+                   + "\n UserCreated: " + UserCreated
+                   + "\n InitializeComponents: " + InitializeComponents;
+        }
     }
 
     [MyEntityType(typeof(MyObjectBuilder_Planet))]
@@ -58,7 +84,7 @@ namespace Sandbox.Game.Entities
 
         public static bool RUN_SECTORS = false;
 
-        List<BoundingBoxD> m_clustersIntersection = new List<BoundingBoxD>();
+        private List<BoundingBoxD> m_clustersIntersection = new List<BoundingBoxD>();
 
         #region Shape properties
 
@@ -68,19 +94,23 @@ namespace Sandbox.Game.Entities
             private set;
         }
 
-        #endregion
+        #endregion Shape properties
 
         #region Oxygen & Atmosphere
 
         bool IMyOxygenProvider.IsPositionInRange(Vector3D worldPoint)
         {
-            if (!Generator.HasAtmosphere || !Generator.Atmosphere.Breathable) return false;
+            if (Generator == null || !Generator.HasAtmosphere || !Generator.Atmosphere.Breathable) 
+                return false;
 
             return (WorldMatrix.Translation - worldPoint).Length() < AtmosphereAltitude + AverageRadius;
         }
 
         public float GetOxygenForPosition(Vector3D worldPoint)
         {
+            if (Generator == null)
+                return 0;
+
             if (Generator.Atmosphere.Breathable)
                 return GetAirDensity(worldPoint) * Generator.Atmosphere.OxygenDensity;
             return 0f;
@@ -88,6 +118,9 @@ namespace Sandbox.Game.Entities
 
         public float GetAirDensity(Vector3D worldPosition)
         {
+            if (Generator == null)
+                return 0;
+
             if (Generator.HasAtmosphere)
             {
                 double distance = (worldPosition - WorldMatrix.Translation).Length();
@@ -98,12 +131,13 @@ namespace Sandbox.Game.Entities
             return 0f;
         }
 
-        #endregion
+        #endregion Oxygen & Atmosphere
 
         #region Gravity
+
         // THe gravity limit gets calculated from the GRAVITY_LIMIT_STRENGTH so that the gravity stops where it is equal to G_L_S
 
-        #endregion
+        #endregion Gravity
 
         public MyPlanetStorageProvider Provider
         {
@@ -111,12 +145,12 @@ namespace Sandbox.Game.Entities
             private set;
         }
 
-        Dictionary<Vector3I, MyVoxelPhysics> m_physicsShapes;
+        private MyConcurrentDictionary<Vector3I, MyVoxelPhysics> m_physicsShapes;
 
-        HashSet<Vector3I> m_sectorsPhysicsToRemove = new HashSet<Vector3I>();
-        Vector3I m_numCells;
+        private HashSet<Vector3I> m_sectorsPhysicsToRemove = new HashSet<Vector3I>();
+        private Vector3I m_numCells;
 
-        bool m_canSpawnSectors = true;
+        private bool m_canSpawnSectors = true;
 
         public override MyVoxelBase RootVoxel { get { return this; } }
 
@@ -176,7 +210,7 @@ namespace Sandbox.Game.Entities
             }
         }
 
-        MyPlanetInitArguments m_planetInitValues;
+        private MyPlanetInitArguments m_planetInitValues;
 
         public MyPlanetInitArguments GetInitArguments
         {
@@ -252,7 +286,7 @@ namespace Sandbox.Game.Entities
             }
         }
 
-        bool CanSpawnFlora
+        private bool CanSpawnFlora
         {
             get;
             set;
@@ -291,11 +325,13 @@ namespace Sandbox.Game.Entities
 
             ProfilerShort.BeginNextBlock("Load Saved Data");
 
-            var ob = (MyObjectBuilder_Planet)builder;
+            var ob = (MyObjectBuilder_Planet) builder;
             if (ob == null)
             {
                 return;
             }
+
+            MyLog.Default.WriteLine("Planet init info - MutableStorage:" + ob.MutableStorage + " StorageName:" + ob.StorageName + " storage?:" + (storage != null).ToString());
 
             if (ob.MutableStorage)
             {
@@ -316,15 +352,20 @@ namespace Sandbox.Game.Entities
             m_planetInitValues.SurfaceGravity = ob.SurfaceGravity;
             m_planetInitValues.AddGps = ob.ShowGPS;
             m_planetInitValues.SpherizeWithDistance = ob.SpherizeWithDistance;
-            m_planetInitValues.Generator = ob.PlanetGenerator == "" ? null : MyDefinitionManager.Static.GetDefinition<MyPlanetGeneratorDefinition>(MyStringHash.GetOrCompute(ob.PlanetGenerator));
+            m_planetInitValues.Generator = ob.PlanetGenerator == ""
+                ? null
+                : MyDefinitionManager.Static.GetDefinition<MyPlanetGeneratorDefinition>(
+                    MyStringHash.GetOrCompute(ob.PlanetGenerator));
             if (m_planetInitValues.Generator == null)
             {
                 string message = string.Format("No definition found for planet generator {0}.", ob.PlanetGenerator);
                 MyLog.Default.WriteLine(message);
-                throw new Exception(message);
+                throw new MyIncompatibleDataException(message);
             }
 
-            m_planetInitValues.AtmosphereSettings = m_planetInitValues.Generator.AtmosphereSettings.HasValue ? m_planetInitValues.Generator.AtmosphereSettings.Value : MyAtmosphereSettings.Defaults();
+            m_planetInitValues.AtmosphereSettings = m_planetInitValues.Generator.AtmosphereSettings.HasValue
+                ? m_planetInitValues.Generator.AtmosphereSettings.Value
+                : MyAtmosphereSettings.Defaults();
             m_planetInitValues.UserCreated = false;
 
             ProfilerShort.BeginNextBlock("Load Storage");
@@ -335,10 +376,27 @@ namespace Sandbox.Game.Entities
             else
             {
                 m_planetInitValues.Storage = MyStorageBase.Load(ob.StorageName);
+                
+                if (m_planetInitValues.Storage == null)
+                {
+                    string message = string.Format("No storage loaded for planet {0}.", ob.StorageName);
+                    MyLog.Default.WriteLine(message);
+                    throw new MyIncompatibleDataException(message);
+                }
             }
 
+            m_planetInitValues.InitializeComponents = false;
+
             ProfilerShort.BeginNextBlock("Init Internal");
+
+            // MZ: if any crashes are related to MP planet init in the future, i added logging of MyPlanetInitArguments and other sanity checks.
+            //     we are currently having crashes without this additional info and it is likely that even after my hotfixes it is going to crash again
+            //     ...but we can check the logs and know the setup of the player :)
+            MyLog.Default.Log(MyLogSeverity.Info, "Planet generator name: {0}", ob.PlanetGenerator ?? "<null>");
+
+            // Initialize!
             Init(m_planetInitValues);
+
             ProfilerShort.End();
 
             ProfilerShort.End();
@@ -351,10 +409,39 @@ namespace Sandbox.Game.Entities
                 throw new PlanetsNotEnabledException();
             }
 
-            m_planetInitValues = arguments;
+            m_planetInitValues = arguments;            
+            
+            // MZ: if any crashes are related to MP planet init in the future, i added logging of MyPlanetInitArguments and other sanity checks.
+            //     we are currently having crashes without this additional info and it is likely that even after my hotfixes it is going to crash again
+            //     ...but we can check the logs and know the setup of the player :)
+            MyLog.Default.Log(MyLogSeverity.Info, "Planet init values: {0}", m_planetInitValues.ToString());   // m_planetInitValues is struct and therefore never null
 
             // Parameteres from storage
+            if (m_planetInitValues.Storage == null)
+            {
+                MyLog.Default.Log(MyLogSeverity.Error, "MyPlanet.Init: Planet storage is null! Init of the planet was cancelled.");
+                return;
+            }
+
             Provider = m_planetInitValues.Storage.DataProvider as MyPlanetStorageProvider;
+            System.Diagnostics.Debug.Assert(Provider != null, "Invalid provider!");
+            if (Provider == null)
+            {
+                MyLog.Default.Error("Invalid plane provider!");
+                return;
+            }
+
+            if (Provider == null)
+            {
+                MyLog.Default.Log(MyLogSeverity.Error, "MyPlanet.Init: Planet storage provider is null! Init of the planet was cancelled.");
+                return;
+            }
+
+            if (arguments.Generator == null)
+            {
+                MyLog.Default.Log(MyLogSeverity.Error, "MyPlanet.Init: Planet generator is null! Init of the planet was cancelled.");
+                return;
+            }
 
             m_planetInitValues.Radius = Provider.Radius;
             m_planetInitValues.MaxRadius = Provider.Shape.OuterRadius;
@@ -362,7 +449,7 @@ namespace Sandbox.Game.Entities
 
             Generator = arguments.Generator;
 
-            AtmosphereAltitude = Provider.Shape.MaxHillHeight * Generator.Atmosphere.LimitAltitude;
+            AtmosphereAltitude = Provider.Shape.MaxHillHeight * (Generator != null ? Generator.Atmosphere.LimitAltitude : 1);
 
             base.Init(m_planetInitValues.StorageName, m_planetInitValues.Storage, m_planetInitValues.PositionMinCorner);
 
@@ -394,7 +481,7 @@ namespace Sandbox.Game.Entities
             m_numCells -= 1;
             m_numCells = Vector3I.Max(Vector3I.Zero, m_numCells);
 
-            CanSpawnFlora = Generator.MaterialEnvironmentMappings.Count != 0 && MySession.Static.EnableFlora && MyFakes.ENABLE_ENVIRONMENT_ITEMS && Storage.DataProvider is MyPlanetStorageProvider;
+            CanSpawnFlora = Generator != null && Generator.MaterialEnvironmentMappings.Count != 0 && MySession.Static.EnableFlora && MyFakes.ENABLE_ENVIRONMENT_ITEMS && Storage.DataProvider is MyPlanetStorageProvider;
 
             StorageName = m_planetInitValues.StorageName;
             m_storageMax = m_planetInitValues.Storage.Size;
@@ -403,9 +490,11 @@ namespace Sandbox.Game.Entities
             PrepareSectors();
 
             // Prepare components
-            HackyComponentInitByMiroPleaseDontUseEver(new MyDefinitionId(typeof(MyObjectBuilder_Planet), Generator.Id.SubtypeId));
+            // TODO: breaks loading of worlds. Overrides loaded deserialization of ownership components replacing them with clean one. Will be fixed after Daniel fixes generation of components on planet when new world is created. Also remove bool from arguments.
+            if (arguments.InitializeComponents && Generator != null)
+                HackyComponentInitByMiroPleaseDontUseEver(new MyDefinitionId(typeof(MyObjectBuilder_Planet), Generator.Id.SubtypeId));
 
-            if (Generator.EnvironmentDefinition != null)
+            if (Generator != null && Generator.EnvironmentDefinition != null)
             {
                 if (!Components.Contains(typeof(MyPlanetEnvironmentComponent)))
                     Components.Add(new MyPlanetEnvironmentComponent());
@@ -483,7 +572,7 @@ namespace Sandbox.Game.Entities
             Provider = null;
         }
 
-        #endregion
+        #endregion Load/Unload
 
         public override void OnAddedToScene(object source)
         {
@@ -539,7 +628,7 @@ namespace Sandbox.Game.Entities
         {
             if (m_physicsShapes == null)
             {
-                m_physicsShapes = new Dictionary<Vector3I, MyVoxelPhysics>();
+                m_physicsShapes = new MyConcurrentDictionary<Vector3I, MyVoxelPhysics>();
             }
 
             MyVoxelPhysics voxelMap = null;
@@ -598,7 +687,6 @@ namespace Sandbox.Game.Entities
 
         public override void AfterPaste()
         {
-
         }
 
         private void UpdateFloraAndPhysics(bool serial = false)
@@ -690,9 +778,21 @@ namespace Sandbox.Game.Entities
                     bool keep = false;
                     foreach (var entity in m_entities)
                     {
-                        if (entity.Physics != null && !entity.Physics.IsStatic)
+                        if (entity.Physics != null)
                         {
-                            keep = true;
+                            if (entity.Physics.IsStatic)
+                            {
+                                MyCubeGrid grid = entity as MyCubeGrid;
+                                //welded grids to voxels are static but planet physics sector needs to be kept for them
+                                if (grid != null && grid.IsStatic == false)
+                                {
+                                    keep = true;
+                                }
+                            }
+                            else
+                            {
+                                keep = true;
+                            }
                         }
                     }
 
@@ -714,7 +814,8 @@ namespace Sandbox.Game.Entities
                 ProfilerShort.End();
             }
         }
-        #endregion
+
+        #endregion Planet Physics
 
         public override MyClipmapScaleEnum ScaleGroup
         {
@@ -744,7 +845,7 @@ namespace Sandbox.Game.Entities
             else
             {
                 // Calculate if the position is not inside of the planet:
-                VRage.Voxels.MyVoxelCoordSystems.WorldPositionToLocalPosition(PositionLeftBottomCorner, ref position, out localPos);
+                MyVoxelCoordSystems.WorldPositionToLocalPosition(PositionLeftBottomCorner, ref position, out localPos);
 
                 // Setup safe bounding box for the drone.
                 testBBox = new BoundingBox(localPos - offset, localPos + offset);
@@ -762,7 +863,7 @@ namespace Sandbox.Game.Entities
                 // Spawn it above the ground in the direction of up vector
                 fixedPosition += upVector * radius;
 
-                VRage.Voxels.MyVoxelCoordSystems.WorldPositionToLocalPosition(PositionLeftBottomCorner, ref fixedPosition, out localPos);
+                MyVoxelCoordSystems.WorldPositionToLocalPosition(PositionLeftBottomCorner, ref fixedPosition, out localPos);
                 testBBox = new BoundingBox(localPos - offset, localPos + offset);
                 cType = Storage.Intersect(ref testBBox);
 

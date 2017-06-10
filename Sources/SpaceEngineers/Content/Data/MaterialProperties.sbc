@@ -9,32 +9,27 @@
       </Id>
       <ContactProperties>
         <ContactProperty>
-          <Type>Start</Type>
+          <Type>Hit</Type>
           <Material>Metal</Material>
           <SoundCue>ImpPlayerMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
-          <Type>Start</Type>
+          <Type>Hit</Type>
           <Material>Glass</Material>
           <SoundCue>ImpPlayerMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
-          <Type>Start</Type>
+          <Type>Hit</Type>
           <Material>Rock</Material>
           <SoundCue>ImpPlayerRock</SoundCue>
         </ContactProperty>
         <ContactProperty>
-          <Type>Start</Type>
+          <Type>Hit</Type>
           <Material>Ammo</Material>
           <SoundCue>ImpPlayerMetal</SoundCue>
       </ContactProperty>
         <ContactProperty>
-          <Type>Start</Type>
-          <Material>Ship</Material>
-          <SoundCue>ImpPlayerMetal</SoundCue>
-        </ContactProperty>
-        <ContactProperty>
-          <Type>Start</Type>
+          <Type>Hit</Type>
           <Material>Character</Material>
           <SoundCue>ImpPlayerPlayer</SoundCue>
         </ContactProperty>
@@ -63,6 +58,11 @@
           <Type>Fall</Type>
           <Material>Ice</Material>
           <SoundCue>PlayFallIce</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>Ice</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
         </ContactProperty>
         
         <ContactProperty>
@@ -93,6 +93,11 @@
           <Type>Fall</Type>
           <Material>Snow</Material>
           <SoundCue>PlayFallSnow</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>Snow</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
         </ContactProperty>
         
         <ContactProperty>
@@ -177,6 +182,11 @@
           <SoundCue>PlayFallGrass</SoundCue>
 		  <ParticleEffect>CharacterStepFlora</ParticleEffect>
         </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>Grass</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
+        </ContactProperty>
         
         <ContactProperty>
           <Type>CrouchWalk</Type>
@@ -202,6 +212,11 @@
           <Type>Fall</Type>
           <Material>GrassDry</Material>
           <SoundCue>PlayFallGrassDry</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>GrassDry</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
         </ContactProperty>
         
         <ContactProperty>
@@ -233,6 +248,11 @@
           <Material>Sand</Material>
           <SoundCue>PlayFallSand</SoundCue>
         </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>Sand</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
+        </ContactProperty>
         
         <ContactProperty>
           <Type>CrouchWalk</Type>
@@ -259,6 +279,11 @@
           <Material>Soil</Material>
           <SoundCue>PlayFallSoil</SoundCue>
         </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>Soil</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
+        </ContactProperty>
         
         <ContactProperty>
           <Type>CrouchWalk</Type>
@@ -284,6 +309,11 @@
           <Type>Fall</Type>
           <Material>SoilDry</Material>
           <SoundCue>PlayFallSoilDry</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>SoilDry</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
         </ContactProperty>
         
         <ContactProperty>
@@ -315,6 +345,11 @@
           <Material>MoonSoil</Material>
           <SoundCue>PlayFallSoilMoon</SoundCue>
         </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>MoonSoil</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
+        </ContactProperty>
         
         <ContactProperty>
           <Type>CrouchWalk</Type>
@@ -345,95 +380,118 @@
           <Material>MarsSoil</Material>
           <SoundCue>PlayFallSoilMars</SoundCue>
         </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>MarsSoil</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
+        </ContactProperty>
 
         <ContactProperty>
           <Type>CrouchWalk</Type>
           <Material>OrangeAlienGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>CharacterStepGrassAlienOrange</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Walk</Type>
           <Material>OrangeAlienGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>CharacterStepGrassAlienOrange</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>OrangeAlienGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>CharacterStepGrassAlienOrange</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Sprint</Type>
           <Material>OrangeAlienGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>CharacterStepGrassAlienOrange</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Fall</Type>
           <Material>OrangeAlienGrass</Material>
           <SoundCue>PlayFallGrass</SoundCue>
+          <ParticleEffect>CharacterStepGrassAlienOrange</ParticleEffect>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>OrangeAlienGrass</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
         </ContactProperty>
 
         <ContactProperty>
           <Type>CrouchWalk</Type>
           <Material>AlienGreenGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>AlienGreenGrass</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Walk</Type>
           <Material>AlienGreenGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>AlienGreenGrass</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>AlienGreenGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>AlienGreenGrass</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Sprint</Type>
           <Material>AlienGreenGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>AlienGreenGrass</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Fall</Type>
           <Material>AlienGreenGrass</Material>
           <SoundCue>PlayFallGrass</SoundCue>
+          <ParticleEffect>AlienGreenGrass</ParticleEffect>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>AlienGreenGrass</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
         </ContactProperty>
 
         <ContactProperty>
           <Type>CrouchWalk</Type>
           <Material>AlienYellowGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>CharacterStepAlienYellow</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Walk</Type>
           <Material>AlienYellowGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>CharacterStepAlienYellow</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>AlienYellowGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>CharacterStepAlienYellow</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Sprint</Type>
           <Material>AlienYellowGrass</Material>
-          <SoundCue>PlayStepsGrass</SoundCue>
+          <SoundCue>PlayStepsAliGrass</SoundCue>
           <ParticleEffect>CharacterStepAlienYellow</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Fall</Type>
           <Material>AlienYellowGrass</Material>
           <SoundCue>PlayFallGrass</SoundCue>
+          <ParticleEffect>CharacterStepAlienYellow</ParticleEffect>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Hit</Type>
+          <Material>AlienYellowGrass</Material>
+          <SoundCue>ImpPlayerRock</SoundCue>
         </ContactProperty>
 
         
@@ -575,56 +633,56 @@
     <Properties>
       <Id>
         <TypeId>PhysicalMaterialDefinition</TypeId>
-        <SubtypeId>Cyberhound</SubtypeId>
+        <SubtypeId>Wolf</SubtypeId>
       </Id>
       <ContactProperties>
         <ContactProperty>
           <Type>Run</Type>
           <Material>Ice</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>Snow</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>Rock</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>Grass</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>GrassDry</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>OrangeAlienGrass</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
           <ParticleEffect>CharacterStepGrassAlienOrange</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>AlienGreenGrass</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
           <ParticleEffect>AlienGreenGrass</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>AlienYellowGrass</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
           <ParticleEffect>CharacterStepAlienYellow</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>MarsSoil</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
           <ParticleEffect>CharacterStepMarsSoil</ParticleEffect>
           <ParticleProperties>
             <ColorMultiplier>
@@ -640,7 +698,7 @@
         <ContactProperty>
           <Type>Run</Type>
           <Material>MoonSoil</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
           <ParticleEffect>CharacterStepMoonSoil</ParticleEffect>
           <ParticleProperties>
             <ColorMultiplier>
@@ -656,22 +714,22 @@
         <ContactProperty>
           <Type>Run</Type>
           <Material>Sand</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>Soil</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>SoilDry</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Run</Type>
           <Material>Metal</Material>
-          <SoundCue>ArcBotCyberhoundRun</SoundCue>
+          <SoundCue>ArcBotWolfRun</SoundCue>
         </ContactProperty>
       </ContactProperties>
     </Properties>
@@ -697,23 +755,11 @@
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
-          <Material>Rock</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
-          <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
-            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
-            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
-            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
-          </AlternativeImpactSounds>
-        </ContactProperty>
-        <ContactProperty>
-          <Type>Start</Type>
           <Material>Snow</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalSnowCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSnowCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -722,10 +768,10 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>Soil</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalSoilCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSoilCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -734,10 +780,10 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>Grass</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalGrassDryCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassDryCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -749,7 +795,7 @@
           <SoundCue>ImpMetalSandCat0</SoundCue>
           <AlternativeImpactSounds>
             <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSandCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -758,10 +804,10 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>Ice</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalIceCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalIceCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -770,9 +816,9 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>Glass</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalGlassCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGlassCat1" />
             <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
@@ -805,7 +851,210 @@
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
-          <Material>Ship</Material>
+          <Material>MarsSoil</Material>
+          <SoundCue>ImpMetalSoilCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSoilCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>MoonSoil</Material>
+          <SoundCue>ImpMetalSoilCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSoilCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>SoilDry</Material>
+          <SoundCue>ImpMetalSoilCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSoilCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>OrangeAlienGrass</Material>
+          <SoundCue>ImpMetalGrassAlienCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassAlienCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>AlienGreenGrass</Material>
+          <SoundCue>ImpMetalGrassAlienCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassAlienCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>AlienYellowGrass</Material>
+          <SoundCue>ImpMetalGrassAlienCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassAlienCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>GrassDry</Material>
+          <SoundCue>ImpMetalGrassDryCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassDryCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Rock</Material>
+          <SoundCue>ImpMetalRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+      </ContactProperties>
+    </Properties>
+
+
+    <!-- Glass -->
+    <Properties>
+      <Id>
+        <TypeId>PhysicalMaterialDefinition</TypeId>
+        <SubtypeId>Glass</SubtypeId>
+      </Id>
+      <ContactProperties>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Metal</Material>
+          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Snow</Material>
+          <SoundCue>ImpMetalSnowCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSnowCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Soil</Material>
+          <SoundCue>ImpMetalSoilCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSoilCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Grass</Material>
+          <SoundCue>ImpMetalGrassDryCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassDryCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Sand</Material>
+          <SoundCue>ImpMetalSandCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSandCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Ice</Material>
+          <SoundCue>ImpMetalIceCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalIceCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Glass</Material>
+          <SoundCue>ImpMetalGlassCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGlassCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Wood</Material>
+          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Ammo</Material>
           <SoundCue>ImpMetalMetalCat0</SoundCue>
           <AlternativeImpactSounds>
             <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
@@ -818,10 +1067,10 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>MarsSoil</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalSoilCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSoilCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -830,10 +1079,10 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>MoonSoil</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalSoilCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSoilCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -842,10 +1091,10 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>SoilDry</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalSoilCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalSoilCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -854,10 +1103,10 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>OrangeAlienGrass</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalGrassAlienCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassAlienCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -866,10 +1115,10 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>AlienGreenGrass</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalGrassAlienCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassAlienCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -878,10 +1127,10 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>AlienYellowGrass</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalGrassAlienCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassAlienCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -890,10 +1139,22 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>GrassDry</Material>
-          <SoundCue>ImpMetalMetalCat0</SoundCue>
+          <SoundCue>ImpMetalGrassDryCat0</SoundCue>
           <AlternativeImpactSounds>
-            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat1" />
-            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalMetalCat2" />
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalGrassDryCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+            <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
+            <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
+            <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Rock</Material>
+          <SoundCue>ImpMetalRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="8" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat1" />
+            <AlternativeImpactSound mass ="2000" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
             <AlternativeImpactSound mass ="10000" minVelocity="10" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat3" />
             <AlternativeImpactSound mass ="200000" minVelocity="3" maxVolumeVelocity="20" soundCue="ImpMetalMetalCat4" />
             <AlternativeImpactSound mass ="2000000" minVelocity="5" maxVolumeVelocity="25" soundCue="ImpMetalMetalCat5" />
@@ -901,15 +1162,6 @@
         </ContactProperty>
       </ContactProperties>
     </Properties>
-
-    <!-- Ship -->
-    <Properties>
-			<Id>
-				<TypeId>PhysicalMaterialDefinition</TypeId>
-				<SubtypeId>Ship</SubtypeId>
-			</Id>
-      <InheritFrom>Metal</InheritFrom>
-		</Properties>
 
     <!-- Ammo -->
     <Properties>
@@ -979,11 +1231,6 @@
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
-          <Material>Ship</Material>
-          <ParticleEffect>WheelDust_Metal</ParticleEffect>
-        </ContactProperty>
-        <ContactProperty>
-          <Type>Start</Type>
           <Material>MarsSoil</Material>
           <ParticleEffect>WheelDust_MarsSoil</ParticleEffect>
         </ContactProperty>
@@ -1030,92 +1277,164 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>Metal</Material>
-          <SoundCue>ImpMetalRock</SoundCue>
+          <SoundCue>ImpMetalRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Rock</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Snow</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Soil</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>SoilDry</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Sand</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Ice</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Glass</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Wood</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Ammo</Material>
-          <SoundCue>ImpRockRock</SoundCue>
-        </ContactProperty>
-        <ContactProperty>
-          <Type>Start</Type>
-          <Material>Ship</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpMetalRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpMetalRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>MarsSoil</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>MoonSoil</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Grass</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>OrangeAlienGrass</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>AlienGreenGrass</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>AlienYellowGrass</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>GrassDry</Material>
-          <SoundCue>ImpRockRock</SoundCue>
+          <SoundCue>ImpRockRockCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockRockCat2" />
+          </AlternativeImpactSounds>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Character</Material>
+          <SoundCue>ImpRockCharacterCat0</SoundCue>
+          <AlternativeImpactSounds>
+            <AlternativeImpactSound mass ="100" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockCharacterCat1" />
+            <AlternativeImpactSound mass ="500" minVelocity="1" maxVolumeVelocity="15" soundCue="ImpRockCharacterCat2" />
+          </AlternativeImpactSounds>
         </ContactProperty>
       </ContactProperties>
 		</Properties>
@@ -1208,26 +1527,20 @@
         <ContactProperty>
           <Type>Hit</Type>
           <Material>OrangeAlienGrass</Material>
-          <SoundCue>WepPlayRifleImpGrass</SoundCue>
+          <SoundCue>WepPlayRifleImpGrassAlien</SoundCue>
           <ParticleEffect>MaterialHit_GrassOrange</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
           <Material>AlienGreenGrass</Material>
-          <SoundCue>WepPlayRifleImpGrass</SoundCue>
+          <SoundCue>WepPlayRifleImpGrassAlien</SoundCue>
           <ParticleEffect>MaterialHit_GrassGreen</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
           <Material>AlienYellowGrass</Material>
-          <SoundCue>WepPlayRifleImpGrass</SoundCue>
+          <SoundCue>WepPlayRifleImpGrassAlien</SoundCue>
           <ParticleEffect>MaterialHit_GrassYellow</ParticleEffect>
-        </ContactProperty>
-        <ContactProperty>
-          <Type>Hit</Type>
-          <Material>Ship</Material>
-          <SoundCue>WepPlayRifleImpMetal</SoundCue>
-          <ParticleEffect>MaterialHit_Metal</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
@@ -1243,9 +1556,9 @@
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
-          <Material>Cyberhound</Material>
+          <Material>Wolf</Material>
           <SoundCue>WepPlayRifleImpMetal</SoundCue>
-          <ParticleEffect>MaterialHit_Metal</ParticleEffect>
+          <ParticleEffect>MaterialHit_Character</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
@@ -1356,14 +1669,8 @@
         <ContactProperty>
           <Type>Hit</Type>
           <Material>Glass</Material>
-          <SoundCue>ImpBulletHitGlass</SoundCue>
+          <SoundCue>WepPlayRifleImpGlass</SoundCue>
           <ParticleEffect>MaterialHit_Glass</ParticleEffect>
-        </ContactProperty>
-        <ContactProperty>
-          <Type>Hit</Type>
-          <Material>Ship</Material>
-          <SoundCue>WepShipGatlingImpMetal</SoundCue>
-          <ParticleEffect>MaterialHit_Metal</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
@@ -1379,9 +1686,9 @@
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
-          <Material>Cyberhound</Material>
+          <Material>Wolf</Material>
           <SoundCue>WepShipGatlingImpMetal</SoundCue>
-          <ParticleEffect>MaterialHit_Metal</ParticleEffect>
+          <ParticleEffect>MaterialHit_Character</ParticleEffect>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
@@ -1402,27 +1709,22 @@
         <ContactProperty>
           <Type>Hit</Type>
           <Material>Rock</Material>
-          <SoundCue>ImpExpHitRock</SoundCue>
+          <SoundCue>WepShipGatlingImpRock</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
           <Material>Metal</Material>
-          <SoundCue>ImpExpHitMetal</SoundCue>
+          <SoundCue>WepShipGatlingImpMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
           <Material>Glass</Material>
-          <SoundCue>ImpExpHitGlass</SoundCue>
-        </ContactProperty>
-        <ContactProperty>
-          <Type>Hit</Type>
-          <Material>Ship</Material>
-          <SoundCue>ImpExpHitMetal</SoundCue>
+          <SoundCue>WepShipGatlingImpMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
           <Material>Ammo</Material>
-          <SoundCue>ImpExpHitMetal</SoundCue>
+          <SoundCue>WepShipGatlingImpMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
@@ -1436,8 +1738,8 @@
         </ContactProperty>
         <ContactProperty>
           <Type>Hit</Type>
-          <Material>Cyberhound</Material>
-          <SoundCue>ImpExpHitMetal</SoundCue>
+          <Material>Wolf</Material>
+          <SoundCue>WepPlayRifleImpPlay</SoundCue>
         </ContactProperty>
       </ContactProperties>
 		</Properties>
@@ -1452,36 +1754,43 @@
         <ContactProperty>
           <Type>Start</Type>
           <Material>Metal</Material>
+          <ParticleEffect>AngleGrinder</ParticleEffect>
           <SoundCue>ToolPlayGrindMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Glass</Material>
+          <ParticleEffect>AngleGrinder</ParticleEffect>
           <SoundCue>ToolPlayGrindMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Wheel</Material>
+          <ParticleEffect>AngleGrinder</ParticleEffect>
           <SoundCue>ToolPlayGrindMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
-          <Material>Cyberhound</Material>
+          <Material>Wolf</Material>
+          <ParticleEffect>Grinder_Character</ParticleEffect>
           <SoundCue>ToolPlayGrindMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Character</Material>
+          <ParticleEffect>Grinder_Character</ParticleEffect>
           <SoundCue>ToolPlayGrindMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Spider</Material>
+          <ParticleEffect>Blood_Spider</ParticleEffect>
           <SoundCue>ToolPlayGrindMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Wood</Material>
+          <ParticleEffect>MaterialHit_Wood</ParticleEffect>
           <SoundCue>ToolPlayGrindMetal</SoundCue>
         </ContactProperty>
       </ContactProperties>
@@ -1501,7 +1810,7 @@
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
-          <Material>Cyberhound</Material>
+          <Material>Wolf</Material>
           <SoundCue>ToolPlayDrillMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
@@ -1586,13 +1895,73 @@
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
-          <Material>Cyberhound</Material>
+          <Material>Wolf</Material>
           <SoundCue>ToolShipDrillMetal</SoundCue>
         </ContactProperty>
         <ContactProperty>
           <Type>Start</Type>
           <Material>Rock</Material>
           <SoundCue>ToolShipDrillRock</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Soil</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Grass</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>MarsSoil</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>MoonSoil</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>SoilDry</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>OrangeAlienGrass</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>AlienGreenGrass</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>AlienYellowGrass</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>GrassDry</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Sand</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Ice</Material>
+          <SoundCue>ToolShipDrillRock</SoundCue>
+        </ContactProperty>
+        <ContactProperty>
+          <Type>Start</Type>
+          <Material>Snow</Material>
+          <SoundCue>ToolShipDrillSoil</SoundCue>
         </ContactProperty>
       </ContactProperties>
     </Properties>

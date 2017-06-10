@@ -18,6 +18,8 @@ using System.Text;
 using Sandbox.Game.EntityComponents;
 using VRage.Game;
 using IMyLandingGear = Sandbox.Game.Entities.Interfaces.IMyLandingGear;
+using Sandbox.Game.Multiplayer;
+using VRage.Profiler;
 
 #endregion
 
@@ -71,7 +73,7 @@ namespace Sandbox.Game.Entities.Cube
             ControlSystem = new MyGroupControlSystem();
             CameraSystem = new MyGridCameraSystem(m_cubeGrid);
 
-            if (MySession.Static.Settings.EnableOxygen)
+            if (MySession.Static.Settings.EnableOxygen && MySession.Static.Settings.EnableOxygenPressurization)
             {
                 GasSystem = new MyGridGasSystem(m_cubeGrid);
             }
@@ -98,7 +100,7 @@ namespace Sandbox.Game.Entities.Cube
                 m_cubeGrid.SetHandbrakeRequest(builder.Handbrake);
             }
 
-            if (MySession.Static.Settings.EnableOxygen)
+            if (MySession.Static.Settings.EnableOxygen && MySession.Static.Settings.EnableOxygenPressurization)
             {
                 GasSystem.Init(builder.OxygenAmount);
             }
@@ -134,11 +136,15 @@ namespace Sandbox.Game.Entities.Cube
 
         public void UpdateBeforeSimulation()
         {
-			ProfilerShort.Begin("Thrusters");
-	        MyEntityThrustComponent thrustComp;
-			if(CubeGrid.Components.TryGet(out thrustComp))
-				thrustComp.UpdateBeforeSimulation();
+            ProfilerShort.Begin("Control");
+            ControlSystem.UpdateBeforeSimulation();
             ProfilerShort.End();
+
+            VRage.Profiler.ProfilerShort.Begin("Thrusters");
+            MyEntityThrustComponent thrustComp;
+            if (CubeGrid.Components.TryGet(out thrustComp))
+                thrustComp.UpdateBeforeSimulation(Sync.IsServer || CubeGrid.GridSystems.ControlSystem.IsLocallyControlled);
+            VRage.Profiler.ProfilerShort.End();
 
             // Only update gyros if there are gyros in the system
             if (GyroSystem.GyroCount > 0)
@@ -159,15 +165,11 @@ namespace Sandbox.Game.Entities.Cube
             ConveyorSystem.UpdateBeforeSimulation();
             ProfilerShort.End();*/
 
-            ProfilerShort.Begin("Control");
-            ControlSystem.UpdateBeforeSimulation();
-            ProfilerShort.End();
-
             ProfilerShort.Begin("Cameras");
             CameraSystem.UpdateBeforeSimulation();
             ProfilerShort.End();
 
-            if (MySession.Static.Settings.EnableOxygen)
+            if (MySession.Static.Settings.EnableOxygen && MySession.Static.Settings.EnableOxygenPressurization)
             {
                 ProfilerShort.Begin("Oxygen");
                 GasSystem.UpdateBeforeSimulation();
@@ -185,6 +187,8 @@ namespace Sandbox.Game.Entities.Cube
             if (ShipSoundComponent != null)
                 ShipSoundComponent.Update();
             ProfilerShort.End();
+
+            UpdatePower();
         }
 
         public virtual void PrepareForDraw()
@@ -197,7 +201,7 @@ namespace Sandbox.Game.Entities.Cube
         {
 			ProfilerShort.Begin("GridSystems.UpdatePower");
             if (ResourceDistributor != null)
-                ResourceDistributor.UpdateBeforeSimulation10();
+                ResourceDistributor.UpdateBeforeSimulation();
 			ProfilerShort.End();
         }
 
@@ -207,14 +211,13 @@ namespace Sandbox.Game.Entities.Cube
 
         public virtual void UpdateBeforeSimulation10()
         {
-            UpdatePower();
             CameraSystem.UpdateBeforeSimulation10();
             ConveyorSystem.UpdateBeforeSimulation10();
         }
 
         public virtual void UpdateBeforeSimulation100()
         {
-            if (MySession.Static.Settings.EnableOxygen)
+            if (MySession.Static.Settings.EnableOxygen && MySession.Static.Settings.EnableOxygenPressurization)
             {
                 GasSystem.UpdateBeforeSimulation100();
             }
@@ -240,7 +243,7 @@ namespace Sandbox.Game.Entities.Cube
             if (WheelSystem != null)
                 ob.Handbrake = WheelSystem.HandBrake;
 
-            if (MySession.Static.Settings.EnableOxygen)
+            if (MySession.Static.Settings.EnableOxygen && MySession.Static.Settings.EnableOxygenPressurization)
             {
                 ob.OxygenAmount = GasSystem.GetOxygenAmount();
             }
@@ -279,12 +282,15 @@ namespace Sandbox.Game.Entities.Cube
             ResourceDistributor = group.ResourceDistributor;
             WeaponSystem = group.WeaponSystem;
 
+            if (string.IsNullOrEmpty(ResourceDistributor.DebugName))
+                ResourceDistributor.DebugName = m_cubeGrid.ToString();
+
             m_cubeGrid.OnBlockAdded += ResourceDistributor.CubeGrid_OnBlockAddedOrRemoved;
             m_cubeGrid.OnBlockRemoved += ResourceDistributor.CubeGrid_OnBlockAddedOrRemoved;
 
             ResourceDistributor.AddSink(GyroSystem.ResourceSink);
             ResourceDistributor.AddSink(ConveyorSystem.ResourceSink);
-            ResourceDistributor.UpdateBeforeSimulation10();
+            ResourceDistributor.UpdateBeforeSimulation();
 
             ConveyorSystem.ResourceSink.IsPoweredChanged += ResourceDistributor.ConveyorSystem_OnPoweredChanged;
 
@@ -359,7 +365,7 @@ namespace Sandbox.Game.Entities.Cube
             ConveyorSystem.ResourceSink.IsPoweredChanged -= ResourceDistributor.ConveyorSystem_OnPoweredChanged;
             group.ResourceDistributor.RemoveSink(ConveyorSystem.ResourceSink, resetSinkInput: false);
             group.ResourceDistributor.RemoveSink(GyroSystem.ResourceSink, resetSinkInput: false);
-            group.ResourceDistributor.UpdateBeforeSimulation10();
+            group.ResourceDistributor.UpdateBeforeSimulation();
 
             m_cubeGrid.OnBlockAdded -= ResourceDistributor.CubeGrid_OnBlockAddedOrRemoved;
             m_cubeGrid.OnBlockRemoved -= ResourceDistributor.CubeGrid_OnBlockAddedOrRemoved;
@@ -446,7 +452,7 @@ namespace Sandbox.Game.Entities.Cube
                 ConveyorSystem.DebugDrawLinePackets();
             }
 
-            if (MySession.Static.Settings.EnableOxygen && MyDebugDrawSettings.DEBUG_DRAW_OXYGEN)
+            if (MySession.Static.Settings.EnableOxygen && MySession.Static.Settings.EnableOxygenPressurization && MyDebugDrawSettings.DEBUG_DRAW_OXYGEN)
             {
                 GasSystem.DebugDraw();
             }
@@ -474,7 +480,7 @@ namespace Sandbox.Game.Entities.Cube
                     ResourceDistributor.AddSource(powerProducer);
 
                 var powerConsumer = block.Components.Get<MyResourceSinkComponent>();
-                if (powerConsumer != null)
+                if (!(block is MyThrust) && powerConsumer != null)
                     ResourceDistributor.AddSink(powerConsumer);
 
                 var socketOwner = block as IMyRechargeSocketOwner;
@@ -564,6 +570,7 @@ namespace Sandbox.Game.Entities.Cube
                 var powerConsumer = block.Components.Get<MyResourceSinkComponent>();
                 if (powerConsumer != null)
                     ResourceDistributor.RemoveSink(powerConsumer);
+
                 ProfilerShort.End();
 
                 var socketOwner = block as IMyRechargeSocketOwner;

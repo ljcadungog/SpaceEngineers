@@ -1,8 +1,5 @@
 ﻿using System;
-using Sandbox.Common.ObjectBuilders;
-using Sandbox.Common.ObjectBuilders.Definitions;
 using Sandbox.Definitions;
-using Sandbox.Engine.Utils;
 using Sandbox.Engine.Voxels;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
@@ -12,12 +9,10 @@ using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Utils;
 using Sandbox.Game.Weapons.Guns;
 using Sandbox.Game.World;
-using Sandbox.ModAPI.Interfaces;
 using System.Collections.Generic;
 using System.Diagnostics;
 using VRage;
 using VRage.Utils;
-using VRage.Voxels;
 using VRageMath;
 using VRageRender;
 using VRage.ObjectBuilders;
@@ -25,6 +20,11 @@ using VRage.Game.Entity;
 using VRage.Game;
 using VRage.Game.ModAPI.Interfaces;
 using VRage.Library.Utils;
+using VRage.Profiler;
+using VRage.Voxels;
+using Sandbox.Game.WorldEnvironment.Modules;
+using Sandbox.Game.WorldEnvironment;
+using Sandbox.Game.World;
 
 namespace Sandbox.Game.Weapons
 {
@@ -49,7 +49,7 @@ namespace Sandbox.Game.Weapons
 
         public virtual void OnWorldPositionChanged(ref MatrixD worldMatrix)
         {
-            m_sphere = new BoundingSphereD(worldMatrix.Translation + worldMatrix.Forward * m_centerOffset, m_radius);
+            m_sphere.Center = worldMatrix.Translation + worldMatrix.Forward * m_centerOffset;
         }
     }
 
@@ -86,6 +86,8 @@ namespace Sandbox.Game.Weapons
 
         // Last time of contact of drill with an object.
         private int m_lastContactTime;
+        //GK: Added in order to check for breakable environment items (e.g. trees) from hand tools (Driller,Grinder)
+        private int m_lastItemId;
 
         public MyParticleEffect DustParticles;
         private MySlimBlock m_target;
@@ -164,10 +166,10 @@ namespace Sandbox.Game.Weapons
 
             m_drilledMaterialBuffer = new Dictionary<MyVoxelMaterialDefinition, int>();
 
-            m_soundEmitter = new MyEntity3DSoundEmitter(m_drillEntity);
+            m_soundEmitter = new MyEntity3DSoundEmitter(m_drillEntity, true);
         }
 
-        public bool Drill(bool collectOre = true, bool performCutout = true, bool assignDamagedMaterial = false)
+        public bool Drill(bool collectOre = true, bool performCutout = true, bool assignDamagedMaterial = false, float speedMultiplier = 1f)
         {
             ProfilerShort.Begin("MyDrillBase::Drill()");
 
@@ -184,6 +186,8 @@ namespace Sandbox.Game.Weapons
                 StopDustParticles();
                 var entitiesInRange = m_sensor.EntitiesInRange;
                 MyStringHash targetMaterial = MyStringHash.NullOrEmpty;
+                MyStringHash bestMaterial = MyStringHash.NullOrEmpty;
+                float distanceBest = float.MaxValue;
                 bool targetIsBlock = false;
                 foreach (var entry in entitiesInRange)
                 {
@@ -285,26 +289,48 @@ namespace Sandbox.Game.Weapons
                             }
                         }
                     }
+                    else if (entity is MyEnvironmentSector)
+                    {
+                        if (m_lastItemId != entry.Value.ItemId)
+                        {
+                            m_lastItemId = entry.Value.ItemId;
+                            m_lastContactTime = MySandboxGame.TotalGamePlayTimeInMilliseconds;
+                        }
+                        if (MySandboxGame.TotalGamePlayTimeInMilliseconds - m_lastContactTime > MyDebrisConstants.CUT_TREE_IN_MILISECONDS * speedMultiplier)
+                        {
+                            var sectorProxy = (entity as MyEnvironmentSector).GetModule<MyBreakableEnvironmentProxy>();
+                            sectorProxy.BreakAt(entry.Value.ItemId, entry.Value.DetectionPoint, Vector3D.Zero, 0);
+                            drillingSuccess = true;
+                            m_lastItemId = 0;
+                        }
+                    }
                     if (drillingSuccess)
                     {
                         m_lastContactTime = MySandboxGame.TotalGamePlayTimeInMilliseconds;
+                        float dist = Vector3.DistanceSquared(entry.Value.DetectionPoint, Sensor.Center);
+                        if (targetMaterial != null && targetMaterial != MyStringHash.NullOrEmpty && dist < distanceBest)
+                        {
+                            bestMaterial = targetMaterial;
+                            distanceBest = dist;
+                        }
                     }
                 }
-                if (targetMaterial != null && targetMaterial != MyStringHash.NullOrEmpty)
+
+                if (bestMaterial != null && bestMaterial != MyStringHash.NullOrEmpty)
                 {
-                    sound = MyMaterialPropertiesHelper.Static.GetCollisionCue(MyMaterialPropertiesHelper.CollisionType.Start, m_drillMaterial, targetMaterial);
+                    sound = MyMaterialPropertiesHelper.Static.GetCollisionCue(MyMaterialPropertiesHelper.CollisionType.Start, m_drillMaterial, bestMaterial);
                     if (sound == null || sound == MySoundPair.Empty)//target material was not set in definition - using metal/rock sound
                     {
                         if (targetIsBlock)
                         {
-                            targetMaterial = m_metalMaterial;
+                            bestMaterial = m_metalMaterial;
                         }
                         else
                         {
-                            targetMaterial = m_rockMaterial;
+                            bestMaterial = m_rockMaterial;
                         }
                     }
-                    sound = MyMaterialPropertiesHelper.Static.GetCollisionCue(MyMaterialPropertiesHelper.CollisionType.Start, m_drillMaterial, targetMaterial);
+                    sound = MyMaterialPropertiesHelper.Static.GetCollisionCue(MyMaterialPropertiesHelper.CollisionType.Start, m_drillMaterial, bestMaterial);
                 }
             }
 
@@ -373,19 +399,45 @@ namespace Sandbox.Game.Weapons
 
         private void StartIdleSound(MySoundPair cuePair)
         {
-            if (m_soundEmitter == null || (m_soundEmitter.IsPlaying && m_soundEmitter.SoundId != cuePair.Arcade && m_soundEmitter.SoundId != cuePair.Realistic && MySandboxGame.TotalGamePlayTimeInMilliseconds - m_lastContactTime < 100))
+            if (m_soundEmitter == null)
                 return;
-            StartLoopSound(cuePair);
+            if (!m_soundEmitter.IsPlaying)
+            {
+                //no sound is playing, start idle sound normally
+                m_soundEmitter.PlaySound(cuePair);
+            }
+            else if (!m_soundEmitter.SoundPair.Equals(cuePair))
+            {
+                //different sound is playing, play end sound for currently playing and start idle sound without intro
+                m_soundEmitter.StopSound(false);
+                m_soundEmitter.PlaySound(cuePair, false, true);
+            }
         }
 
         private void StartLoopSound(MySoundPair cueEnum)
         {
             if (m_soundEmitter == null)
                 return;
-            if (m_soundEmitter.Loop)
-                m_soundEmitter.PlaySingleSound(cueEnum, true, true);
-            else
+            if (!m_soundEmitter.IsPlaying)
+            {
+                //no sound is playing, start sound normally
                 m_soundEmitter.PlaySound(cueEnum);
+            }
+            else if (!m_soundEmitter.SoundPair.Equals(cueEnum))
+            {
+                if (m_soundEmitter.SoundPair.Equals(m_idleSoundLoop))
+                {
+                    //idle sound is playing, stop idle sound and start new sound normally
+                    m_soundEmitter.StopSound(true);
+                    m_soundEmitter.PlaySound(cueEnum);
+                }
+                else
+                {
+                    //different sound is playing, play end sound for currently playing and start new sound without intro
+                    m_soundEmitter.StopSound(false);
+                    m_soundEmitter.PlaySound(cueEnum, false, true);
+                }
+            }
         }
 
         public void StopLoopSound()
@@ -412,7 +464,6 @@ namespace Sandbox.Game.Weapons
 
                 if (DustParticles != null)
                 {
-                    DustParticles.Near = m_drillEntity.Render.NearFlag;
                     DustParticles.WorldMatrix = MatrixD.CreateTranslation(position);
                 }
             }
@@ -423,7 +474,6 @@ namespace Sandbox.Game.Weapons
                 if (MyParticlesManager.TryCreateParticleEffect((int)m_sparksEffectId, out SparkEffect))
                 {
                     SparkEffect.WorldMatrix = Matrix.CreateTranslation(position);
-                    SparkEffect.Near = m_drillEntity.Render.NearFlag;
                 }
                 ProfilerShort.End();
             }
@@ -615,9 +665,7 @@ namespace Sandbox.Game.Weapons
         public void DebugDraw()
         {
             m_sensor.DebugDraw();
-            BoundingSphere bsphere = m_cutOut.Sphere;
-            var color = new Vector3(0, 1, 1);
-            MyRenderProxy.DebugDrawSphere(bsphere.Center, bsphere.Radius, color, 0.6f, true);
+            MyRenderProxy.DebugDrawSphere((Vector3)m_cutOut.Sphere.Center, (float)m_cutOut.Sphere.Radius, Color.Red, 0.6f, true);
         }
 
         private Vector3 ComputeDebrisDirection()
@@ -627,9 +675,9 @@ namespace Sandbox.Game.Weapons
             return debrisDir;
         }
 
-        public void UpdateAfterSimulation100()
+        public void UpdateSoundEmitter()
         {
-            if(m_soundEmitter != null)
+            if (m_soundEmitter != null)
                 m_soundEmitter.Update();
         }
     }

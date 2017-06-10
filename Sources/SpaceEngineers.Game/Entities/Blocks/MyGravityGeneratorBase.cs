@@ -15,14 +15,22 @@ using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.ModAPI;
+using VRage.Profiler;
+using VRage.Sync;
 using VRage.Trace;
 using VRageMath;
 using VRageRender;
+using Sandbox.Definitions;
 
 namespace SpaceEngineers.Game.Entities.Blocks
 {
     public abstract class MyGravityGeneratorBase : MyFunctionalBlock, IMyGizmoDrawableObject, IMyGravityGeneratorBase, IMyGravityProvider
     {
+        private new MyGravityGeneratorBaseDefinition BlockDefinition
+        {
+            get { return (MyGravityGeneratorBaseDefinition)base.BlockDefinition; }
+        }
+
         protected Color m_gizmoColor = new Vector4(0, 0.1f, 0, 0.1f);
         protected const float m_maxGizmoDrawDistance = 1000.0f;
 
@@ -99,12 +107,15 @@ namespace SpaceEngineers.Game.Entities.Blocks
         }
         protected override bool CheckIsWorking()
         {
-			return (ResourceSink != null ? ResourceSink.IsPowered : true) && base.CheckIsWorking();
+            return (ResourceSink != null ? ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId) : true) && base.CheckIsWorking();
         }
 
         public MyGravityGeneratorBase()
             : base()
         {
+#if XB1 // XB1_SYNC_NOREFLECTION
+            m_gravityAcceleration = SyncType.CreateAndAddProp<float>();
+#endif // XB1
             m_gravityAcceleration.ValueChanged += (x) => AccelerationChanged();
         }
 
@@ -164,10 +175,24 @@ namespace SpaceEngineers.Game.Entities.Blocks
                     else if (!entity.Physics.IsKinematic && 
                         !entity.Physics.IsStatic &&
                         entity.Physics.RigidBody2 == null && //jn: TODO this is actualy check for large grid
-                        (character == null || character.IsDead)) 
+                        character == null) 
                     {
                         if (entity.Physics.RigidBody != null && entity.Physics.RigidBody.IsActive)
-                            entity.Physics.AddForce(MyPhysicsForceType.APPLY_WORLD_FORCE, gravity * entity.Physics.RigidBody.Mass, null, null);
+                        {
+                            //<ib.change> increase gravity for floating objects
+                            //entity.Physics.AddForce(MyPhysicsForceType.APPLY_WORLD_FORCE, gravity * entity.Physics.RigidBody.Mass, null, null);
+                            if (entity is MyFloatingObject)
+                            {
+                                var floatingEntity = entity as MyFloatingObject;
+                                float w = (floatingEntity.HasConstraints()) ? 2.0f : 1.0f;
+                                entity.Physics.AddForce(MyPhysicsForceType.APPLY_WORLD_FORCE, w * gravity * entity.Physics.RigidBody.Mass, null, null);                                
+                            }
+                            else
+                            {
+                                entity.Physics.AddForce(MyPhysicsForceType.APPLY_WORLD_FORCE, gravity * entity.Physics.RigidBody.Mass, null, null);
+                            }                   
+                            
+                        }
                     }
                 }
             }
@@ -217,7 +242,7 @@ namespace SpaceEngineers.Game.Entities.Blocks
 
         void phantom_Enter(HkPhantomCallbackShape sender, HkRigidBody body)
         {
-            VRage.ProfilerShort.Begin("GravityEnter");
+            ProfilerShort.Begin("GravityEnter");
             var entity = MyPhysicsExtensions.GetEntity(body, 0);// jn: TODO we should collect bodies not entities
             // HACK: disabled gravity for ships (there may be more changes so I won't add Entity.RespectsGravity now)
             lock (m_locker)
@@ -231,12 +256,12 @@ namespace SpaceEngineers.Game.Entities.Blocks
                         ((MyPhysicsBody)entity.Physics).RigidBody.Activate();
                 }
             }
-            VRage.ProfilerShort.End();
+            ProfilerShort.End();
         }
 
         void phantom_Leave(HkPhantomCallbackShape sender, HkRigidBody body)
         {
-            VRage.ProfilerShort.Begin("GravityLeave");
+            ProfilerShort.Begin("GravityLeave");
             var entity = MyPhysicsExtensions.GetEntity(body, 0);// jn: TODO we should collect bodies not entities
 
             lock (m_locker)
@@ -247,7 +272,7 @@ namespace SpaceEngineers.Game.Entities.Blocks
                     MyTrace.Send(TraceWindow.EntityId, string.Format("Entity left gravity field, entity: {0}", entity));
                 }
             }
-            VRage.ProfilerShort.End();
+            ProfilerShort.End();
         }
         public Color GetGizmoColor()
         {
@@ -292,5 +317,42 @@ namespace SpaceEngineers.Game.Entities.Blocks
 		{
 			return (IsPositionInRange(worldPoint) ? 1.0f : 0.0f);
 		}
+
+        #region ModAPI
+        float ModAPI.IMyGravityGeneratorBase.Gravity
+        {
+            get { return GravityAcceleration / MyGravityProviderSystem.G; }
+            set { GravityAcceleration = value * MyGravityProviderSystem.G; }
+        }
+
+        float ModAPI.IMyGravityGeneratorBase.GravityAcceleration
+        {
+            get { return GravityAcceleration; }
+            set { GravityAcceleration = value; }
+        }
+
+        float ModAPI.Ingame.IMyGravityGeneratorBase.Gravity
+        {
+            get { return GravityAcceleration / MyGravityProviderSystem.G; }
+            set { GravityAcceleration = MathHelper.Clamp(value * MyGravityProviderSystem.G, BlockDefinition.MinGravityAcceleration, BlockDefinition.MaxGravityAcceleration); }
+        }
+        
+        float ModAPI.Ingame.IMyGravityGeneratorBase.GravityAcceleration
+        {
+            get { return GravityAcceleration; }
+            set { GravityAcceleration = MathHelper.Clamp(value, BlockDefinition.MinGravityAcceleration, BlockDefinition.MaxGravityAcceleration); }
+        }
+
+        bool ModAPI.Ingame.IMyGravityGeneratorBase.IsPositionInRange(Vector3D worldPoint)
+        {
+            return IsPositionInRange(worldPoint);
+        }
+
+        Vector3 ModAPI.Ingame.IMyGravityGeneratorBase.GetWorldGravity(Vector3D worldPoint)
+        {
+            return GetWorldGravity(worldPoint);
+        }
+
+        #endregion ModAPI
     }
 }

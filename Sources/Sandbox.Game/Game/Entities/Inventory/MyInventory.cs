@@ -32,7 +32,6 @@ using VRage.Serialization;
 using Sandbox.Game.Replication;
 using Sandbox.Common;
 using Sandbox.Engine.Utils;
-using VRage.Library.Sync;
 using VRage.Game.Entity;
 using Sandbox.Game.EntityComponents;
 using VRage.Game;
@@ -40,6 +39,8 @@ using VRage.Game.ModAPI.Ingame;
 using Sandbox.Game.Entities.Interfaces;
 using Sandbox.Game.GUI;
 using Sandbox.Game.SessionComponents;
+using VRage.Audio;
+using VRage.Sync;
 using IMyEntity = VRage.ModAPI.IMyEntity;
 
 #endregion
@@ -148,7 +149,13 @@ namespace Sandbox.Game
             m_maxMass = maxMass;
             m_flags = flags;
 
+#if !XB1 // !XB1_SYNC_NOREFLECTION
             SyncType = SyncHelpers.Compose(this);
+#else // XB1
+            SyncType = new SyncType(new List<SyncBase>());
+            m_currentVolume = SyncType.CreateAndAddProp<MyFixedPoint>();
+            m_currentMass = SyncType.CreateAndAddProp<MyFixedPoint>();
+#endif // XB1
             m_currentVolume.ValueChanged += (x) => PropertiesChanged();
             m_currentVolume.ValidateNever();
 
@@ -164,6 +171,7 @@ namespace Sandbox.Game
             : this(definition.InventoryVolume, definition.InventoryMass, new Vector3(definition.InventorySizeX, definition.InventorySizeY, definition.InventorySizeZ), flags)
         {
             myObjectBuilder_InventoryDefinition = definition;
+
         }
 
         #endregion
@@ -662,6 +670,17 @@ namespace Sandbox.Game
                     if (amount >= obj.Item.Amount)
                     {
                         MyFloatingObjects.RemoveFloatingObject(obj, true);
+
+                        // Visual Scripting event Implementation
+                        if(MyVisualScriptLogicProvider.PlayerPickedUp != null)
+                        {
+                            var character = Owner as MyCharacter;
+                            if(character != null)
+                            {
+                                var playerId = character.ControllerInfo.ControllingIdentityId;
+                                MyVisualScriptLogicProvider.PlayerPickedUp(obj.ItemDefinition.Id.TypeId.ToString(), obj.ItemDefinition.Id.SubtypeName, obj.Name, playerId, amount.ToIntSafe());
+                            }
+                        }
                     }
                     else
                     {
@@ -1686,6 +1705,7 @@ namespace Sandbox.Game
                 RemoveEntityOnEmpty = inventoryComponentDefinition.RemoveEntityOnEmpty;
                 m_multiplierEnabled = inventoryComponentDefinition.MultiplierEnabled;
                 m_maxItemCount = inventoryComponentDefinition.MaxItemCount;
+                Constraint = inventoryComponentDefinition.InputConstraint;
             }
         }
 
@@ -1722,7 +1742,7 @@ namespace Sandbox.Game
             containerDefinition.DeselectAll();
         }
 
-        public override MyObjectBuilder_ComponentBase Serialize()
+        public override MyObjectBuilder_ComponentBase Serialize(bool copy = false)
         {
             return GetObjectBuilder();
         }
@@ -1976,6 +1996,16 @@ namespace Sandbox.Game
         [Event, Reliable, Server]
         private void DropItem_Implementation(MyFixedPoint amount, uint itemIndex)
         {
+            if (MyVisualScriptLogicProvider.PlayerDropped != null)
+            {
+                var character = Owner as MyCharacter;
+                if (character != null)
+                {
+                    var item = GetItemByID(itemIndex);
+                    var playerId = character.ControllerInfo.ControllingIdentityId;
+                    MyVisualScriptLogicProvider.PlayerDropped(item.Value.Content.TypeId.ToString(), item.Value.Content.SubtypeName, playerId, amount.ToIntSafe());
+                }
+            }
             RemoveItems(itemIndex, amount, true, true);
         }
 
@@ -2316,6 +2346,11 @@ namespace Sandbox.Game
             {
                 m_maxVolume = (MyFixedPoint)newValue;
             }
+        }
+
+        public void ResetVolume()
+        {
+            m_maxVolume = MyFixedPoint.MaxValue;
         }
     }
 }

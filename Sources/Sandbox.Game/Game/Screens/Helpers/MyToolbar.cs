@@ -8,12 +8,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Sandbox.Game.Entities.Cube;
 using VRage;
+using VRage.Audio;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.Game.Entity;
 using VRage.ObjectBuilders;
 using VRageMath;
 using VRage.Collections;
+using VRage.Profiler;
 
 namespace Sandbox.Game.Screens.Helpers
 {
@@ -247,7 +249,7 @@ namespace Sandbox.Game.Screens.Helpers
 
             MyCockpit cockpit = Owner as MyCockpit;
             if (cockpit != null && cockpit.CubeGrid != null)
-                cockpit.CubeGrid.OnBlockRemoved += OnBlockRemoved;
+                cockpit.CubeGrid.OnBlockClosed += OnBlockClosed;
         }
 
         public MyObjectBuilder_Toolbar GetObjectBuilder()
@@ -447,7 +449,7 @@ namespace Sandbox.Game.Screens.Helpers
             Update();
         }
 
-        private void OnBlockRemoved(MySlimBlock block)
+        private void OnBlockClosed(MySlimBlock block)
         {
             if (block.FatBlock == null)
                 return;
@@ -607,14 +609,16 @@ namespace Sandbox.Game.Screens.Helpers
         {
             var itemToActivate = m_items[index];
             if (StagedSelectedSlot.HasValue && SlotToIndex(StagedSelectedSlot.Value) != index)
-                    StagedSelectedSlot = null;
+                StagedSelectedSlot = null;
             if (itemToActivate != null && itemToActivate.Enabled)
             {
                 if (checkIfWantsToBeActivated && !itemToActivate.WantsToBeActivated)
                     return false;
+
                 if (itemToActivate.WantsToBeActivated || MyCubeBuilder.Static.IsActivated)
                 {
-                    Unselect(false);
+                    if (SelectedItem != itemToActivate)
+                        Unselect(false);
                 }
                 return itemToActivate.Activate();
             }
@@ -630,6 +634,7 @@ namespace Sandbox.Game.Screens.Helpers
             if (SelectedItem != null && unselectSound)
                 MyGuiAudio.PlaySound(MyGuiSounds.HudClick);
 
+            if (unselectSound)
                 MySession.Static.GameFocusManager.Clear();
 
             var controlledObject = MySession.Static.ControlledEntity;

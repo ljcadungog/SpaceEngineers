@@ -8,11 +8,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Management;
 using System.Reflection;
+using VRage;
 using VRage.Game;
 using VRage.Utils;
 using VRage.Win32;
 using VRageMath;
 using VRageRender;
+using VRageRender.Messages;
 
 namespace Sandbox.Engine.Platform.VideoMode
 {
@@ -55,6 +57,7 @@ namespace Sandbox.Engine.Platform.VideoMode
 
         private const MyAntialiasingMode DEFAULT_ANTI_ALIASING = MyAntialiasingMode.FXAA;
         private const MyShadowsQuality DEFAULT_SHADOW_QUALITY = MyShadowsQuality.HIGH;
+        private const bool DEFAULT_AMBIENT_OCCLUSION_ENABLED = true;
         private const bool DEFAULT_TONEMAPPING = true;
         private const MyTextureQuality DEFAULT_TEXTURE_QUALITY = MyTextureQuality.MEDIUM;
         private const MyTextureAnisoFiltering DEFAULT_ANISOTROPIC_FILTERING = MyTextureAnisoFiltering.ANISO_4;
@@ -164,17 +167,20 @@ namespace Sandbox.Engine.Platform.VideoMode
             m_currentGraphicsSettings.VegetationDrawDistance       = config.VegetationDrawDistance;
             m_currentGraphicsSettings.Render.AntialiasingMode      = config.AntialiasingMode ?? DEFAULT_ANTI_ALIASING;
             m_currentGraphicsSettings.Render.ShadowQuality         = config.ShadowQuality ?? DEFAULT_SHADOW_QUALITY;
+            m_currentGraphicsSettings.Render.AmbientOcclusionEnabled  = config.AmbientOcclusionEnabled ?? DEFAULT_AMBIENT_OCCLUSION_ENABLED;
             //m_currentGraphicsSettings.Render.TonemappingEnabled    = config.Tonemapping ?? DEFAULT_TONEMAPPING;
             m_currentGraphicsSettings.Render.TextureQuality        = config.TextureQuality ?? DEFAULT_TEXTURE_QUALITY;
             m_currentGraphicsSettings.Render.AnisotropicFiltering  = config.AnisotropicFiltering ?? DEFAULT_ANISOTROPIC_FILTERING;
             m_currentGraphicsSettings.Render.FoliageDetails        = config.FoliageDetails ?? DEFAULT_FOLIAGE_DETAILS;
             m_currentGraphicsSettings.Render.Dx9Quality            = config.Dx9RenderQuality ?? MyRenderQualityEnum.HIGH;
+            m_currentGraphicsSettings.Render.ModelQuality          = config.ModelQuality ?? MyRenderQualityEnum.HIGH;
             m_currentGraphicsSettings.Render.VoxelQuality          = config.VoxelQuality ?? MyRenderQualityEnum.HIGH;
+
+            MySector.Lodding.SelectQuality(m_currentGraphicsSettings.Render.ModelQuality); // this is hack
 
             SetEnableDamageEffects(config.EnableDamageEffects);
             // Need to send both messages as I don't know which one will be used. One of them will be ignored.
             MyRenderProxy.SwitchRenderSettings(m_currentGraphicsSettings.Render);
-            MyRenderProxy.Settings.EnableShadows = (m_currentGraphicsSettings.Render.ShadowQuality != MyShadowsQuality.DISABLED);
 
             // Load previous device settings that will be used for device creation.
             // If there are no settings in the config (eg. game is run for the first time), null is returned, leaving the decision up
@@ -187,17 +193,23 @@ namespace Sandbox.Engine.Platform.VideoMode
                 var settings = new MyRenderDeviceSettings()
                 {
                     AdapterOrdinal   = videoAdapter.Value,
+                    NewAdapterOrdinal   = videoAdapter.Value,
                     BackBufferHeight = screenHeight.Value,
                     BackBufferWidth  = screenWidth.Value,
                     RefreshRate      = config.RefreshRate,
                     VSync            = config.VerticalSync,
                     WindowMode       = config.WindowMode,
                 };
+
                 if (MyPerGameSettings.DefaultRenderDeviceSettings.HasValue)
                 {
                     settings.UseStereoRendering = MyPerGameSettings.DefaultRenderDeviceSettings.Value.UseStereoRendering;
                     settings.SettingsMandatory = MyPerGameSettings.DefaultRenderDeviceSettings.Value.SettingsMandatory;
                 }
+
+                if (MyCompilationSymbols.DX11ForceStereo)
+                    settings.UseStereoRendering = true;
+
                 return settings;
             }
             else
@@ -219,7 +231,7 @@ namespace Sandbox.Engine.Platform.VideoMode
                                                               (settings.WindowMode == MyWindowModeEnum.Window) ? "Window" : "Fullscreen window"));
                 MySandboxGame.Log.WriteLine("VerticalSync: " + settings.VSync);
 
-                if (settings.Equals(ref m_currentDeviceSettings))
+                if (settings.Equals(ref m_currentDeviceSettings) && settings.NewAdapterOrdinal == settings.AdapterOrdinal) // NewAdapter is not included in Equals
                     return ChangeResult.NothingChanged;
 
                 if (!IsSupportedDisplayMode(settings.AdapterOrdinal, settings.BackBufferWidth, settings.BackBufferHeight, settings.WindowMode))
@@ -266,6 +278,7 @@ namespace Sandbox.Engine.Platform.VideoMode
                 //MySandboxGame.Log.WriteLine("Render.TonemappingEnabled: " + settings.Render.TonemappingEnabled);
                 MySandboxGame.Log.WriteLine("Render.AntialiasingMode: " + settings.Render.AntialiasingMode);
                 MySandboxGame.Log.WriteLine("Render.ShadowQuality: " + settings.Render.ShadowQuality);
+                MySandboxGame.Log.WriteLine("Render.AmbientOcclusionEnabled: " + settings.Render.AmbientOcclusionEnabled);
                 MySandboxGame.Log.WriteLine("Render.TextureQuality: " + settings.Render.TextureQuality);
                 MySandboxGame.Log.WriteLine("Render.AnisotropicFiltering: " + settings.Render.AnisotropicFiltering);
                 MySandboxGame.Log.WriteLine("Render.FoliageDetails: " + settings.Render.FoliageDetails);
@@ -284,10 +297,7 @@ namespace Sandbox.Engine.Platform.VideoMode
 
                 m_currentGraphicsSettings = settings;
 
-                if (settings.Render.GrassDensityFactor != MyRenderProxy.Settings.GrassDensityFactor)
-                {
-                    MyRenderProxy.ReloadGrass();
-                }
+                MySector.Lodding.SelectQuality(settings.Render.ModelQuality);
             }
 
             return ChangeResult.Success;
@@ -382,6 +392,7 @@ namespace Sandbox.Engine.Platform.VideoMode
                     }
                 }
 
+#if !XB1
                 //  Get info about memory
                 var memory = new WinApi.MEMORYSTATUSEX();
                 WinApi.GlobalMemoryStatusEx(memory);
@@ -390,6 +401,12 @@ namespace Sandbox.Engine.Platform.VideoMode
                 MySandboxGame.Log.WriteLine("ComputerInfo.TotalVirtualMemory: " + MyValueFormatter.GetFormatedLong((long)memory.ullTotalVirtual) + " bytes");
                 MySandboxGame.Log.WriteLine("ComputerInfo.AvailablePhysicalMemory: " + MyValueFormatter.GetFormatedLong((long)memory.ullAvailPhys) + " bytes");
                 MySandboxGame.Log.WriteLine("ComputerInfo.AvailableVirtualMemory: " + MyValueFormatter.GetFormatedLong((long)memory.ullAvailVirtual) + " bytes");
+#else // XB1
+                MySandboxGame.Log.WriteLine("ComputerInfo.TotalPhysicalMemory: N/A (XB1 TODO?)");
+                MySandboxGame.Log.WriteLine("ComputerInfo.TotalVirtualMemory: N/A (XB1 TODO?)");
+                MySandboxGame.Log.WriteLine("ComputerInfo.AvailablePhysicalMemory: N/A (XB1 TODO?)");
+                MySandboxGame.Log.WriteLine("ComputerInfo.AvailableVirtualMemory: N/A (XB1 TODO?)");
+#endif // XB1
 
                 //  Get info about hard drives
                 ConnectionOptions oConn = new ConnectionOptions();
@@ -424,11 +441,18 @@ namespace Sandbox.Engine.Platform.VideoMode
 
             try
             {
+#if !XB1
                 Assembly assembly = Assembly.GetExecutingAssembly();
                 MySandboxGame.Log.WriteLine("Assembly.GetName: " + assembly.GetName().ToString());
                 MySandboxGame.Log.WriteLine("Assembly.FullName: " + assembly.FullName);
                 MySandboxGame.Log.WriteLine("Assembly.Location: " + assembly.Location);
                 MySandboxGame.Log.WriteLine("Assembly.ImageRuntimeVersion: " + assembly.ImageRuntimeVersion);
+#else // XB1
+                MySandboxGame.Log.WriteLine("Assembly.GetName: N/A (on XB1)");
+                MySandboxGame.Log.WriteLine("Assembly.FullName: N/A (on XB1)");
+                MySandboxGame.Log.WriteLine("Assembly.Location: N/A (on XB1)");
+                MySandboxGame.Log.WriteLine("Assembly.ImageRuntimeVersion: N/A (on XB1)");
+#endif // XB1
             }
             catch (Exception e)
             {
@@ -452,6 +476,7 @@ namespace Sandbox.Engine.Platform.VideoMode
 
         public static bool IsHardwareCursorUsed()
         {
+#if !XB1
             // Never use hardware cursor in the exteral editor
             if (Sandbox.AppCode.MyExternalAppBase.Static != null) return false;
 
@@ -466,6 +491,9 @@ namespace Sandbox.Engine.Platform.VideoMode
                 return false;
 
             return m_currentGraphicsSettings.HardwareCursor;
+#else // XB1
+            return false;
+#endif // XB1
         }
 
         public static MyAspectRatio GetAspectRatio(MyAspectRatioEnum aspectRatioEnum)
@@ -527,10 +555,14 @@ namespace Sandbox.Engine.Platform.VideoMode
             {
                 m_adapters = message.Adapters;
 
+                int currentAdapterIndex = -1;
+                MyAdapterInfo currentAdapter;
+                currentAdapter.Priority = 1000;
                 try
                 {
-                    var adapter = m_adapters[MySandboxGame.Static.GameRenderComponent.RenderThread.CurrentAdapter];
-                    GpuUnderMinimum = !(adapter.Has512MBRam || adapter.VRAM >= (512 * 1024 * 1024));
+                    currentAdapterIndex = MySandboxGame.Static.GameRenderComponent.RenderThread.CurrentAdapter;
+                    currentAdapter = m_adapters[currentAdapterIndex];
+                    GpuUnderMinimum = !(currentAdapter.Has512MBRam || currentAdapter.VRAM >= (512 * 1024 * 1024));
                 }
                 catch { }
 
@@ -567,6 +599,9 @@ namespace Sandbox.Engine.Platform.VideoMode
                             }
                         }
                     }
+
+                    MySandboxGame.ShowIsBetterGCAvailableNotification |= 
+                        currentAdapterIndex != adapterIndex && currentAdapter.Priority < adapter.Priority;
                 }
             }
         }
@@ -574,6 +609,7 @@ namespace Sandbox.Engine.Platform.VideoMode
         internal static void OnCreatedDeviceSettings(MyRenderMessageCreatedDeviceSettings message)
         {
             m_currentDeviceSettings = message.Settings;
+            m_currentDeviceSettings.NewAdapterOrdinal = m_currentDeviceSettings.AdapterOrdinal;
 
             float aspectRatio = (float)m_currentDeviceSettings.BackBufferWidth / (float)m_currentDeviceSettings.BackBufferHeight;
             m_currentDeviceIsTripleHead = GetAspectRatio(GetClosestAspectRatio(aspectRatio)).IsTripleHead;
@@ -583,7 +619,7 @@ namespace Sandbox.Engine.Platform.VideoMode
         {
             var config = MySandboxGame.Config;
 
-            config.VideoAdapter        = m_currentDeviceSettings.AdapterOrdinal;
+            config.VideoAdapter        = m_currentDeviceSettings.NewAdapterOrdinal; // Use the new value for the next game startup
             config.ScreenWidth         = m_currentDeviceSettings.BackBufferWidth;
             config.ScreenHeight        = m_currentDeviceSettings.BackBufferHeight;
             config.RefreshRate         = m_currentDeviceSettings.RefreshRate;
@@ -602,11 +638,12 @@ namespace Sandbox.Engine.Platform.VideoMode
             //config.Tonemapping            = render.TonemappingEnabled == DEFAULT_TONEMAPPING ? (bool?)null : render.TonemappingEnabled;
             config.AntialiasingMode       = render.AntialiasingMode == DEFAULT_ANTI_ALIASING ? (MyAntialiasingMode?)null : render.AntialiasingMode;
             config.ShadowQuality          = render.ShadowQuality == DEFAULT_SHADOW_QUALITY ? (MyShadowsQuality?)null : render.ShadowQuality;
+            config.AmbientOcclusionEnabled = render.AmbientOcclusionEnabled == DEFAULT_AMBIENT_OCCLUSION_ENABLED ? (bool?)null : render.AmbientOcclusionEnabled;
             config.TextureQuality         = render.TextureQuality == DEFAULT_TEXTURE_QUALITY ? (MyTextureQuality?)null : render.TextureQuality;
             config.AnisotropicFiltering   = render.AnisotropicFiltering == DEFAULT_ANISOTROPIC_FILTERING ? (MyTextureAnisoFiltering?)null : render.AnisotropicFiltering;
             config.FoliageDetails         = render.FoliageDetails == DEFAULT_FOLIAGE_DETAILS ? (MyFoliageDetails?)null : render.FoliageDetails;
+            config.ModelQuality           = render.ModelQuality == MyRenderQualityEnum.HIGH ? (MyRenderQualityEnum?)null : render.ModelQuality;
             config.VoxelQuality           = render.VoxelQuality == MyRenderQualityEnum.HIGH ? (MyRenderQualityEnum?)null : render.VoxelQuality;
-
 
             config.LowMemSwitchToLow = MyConfig.LowMemSwitch.ARMED;
             config.Save();

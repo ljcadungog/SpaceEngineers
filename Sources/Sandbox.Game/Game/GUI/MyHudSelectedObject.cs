@@ -10,11 +10,12 @@ using VRageMath;
 using System.Collections.Generic;
 using VRage.Import;
 using VRage.Game.Models;
-using VRage.Render.Models;
 using VRage.Game.Components;
 using System;
 using VRage.Game.Entity;
 using Sandbox.Game.Entities.Cube;
+using VRageRender.Import;
+using VRageRender.Models;
 
 #endregion
 
@@ -23,7 +24,7 @@ namespace Sandbox.Game.Gui
     public class MyHudSelectedObject
     {
         [ThreadStatic]
-        private static List<int> m_tmpSectionIds = new List<int>();
+        private static List<string> m_tmpSectionNames = new List<string>();
 
         [ThreadStatic]
         private static List<uint> m_tmpSubpartIds = new List<uint>();
@@ -56,7 +57,7 @@ namespace Sandbox.Game.Gui
 
                 CheckForTransition();
                 m_highlightAttribute = value;
-                CurrentObject.SectionIndices = null;
+                CurrentObject.SectionNames = null;
                 CurrentObject.SubpartIndices = null;
                 if (value != null)
                     m_highlightAttributeDirty = true;
@@ -141,12 +142,12 @@ namespace Sandbox.Game.Gui
             }
         }
 
-        internal int[] SectionIndices
+        internal string[] SectionNames
         {
             get
             {
                 ComputeHighlightIndices();
-                return CurrentObject.SectionIndices;
+                return CurrentObject.SectionNames;
             }
         }
 
@@ -161,7 +162,7 @@ namespace Sandbox.Game.Gui
                 return;
             }
 
-            m_tmpSectionIds.Clear();
+            m_tmpSectionNames.Clear();
             m_tmpSubpartIds.Clear();
             string[] names = m_highlightAttribute.Split(MyModelDummy.ATTRIBUTE_HIGHLIGHT_SEPARATOR[0]);
             MyModel model = CurrentObject.Instance.Owner.Render.GetModel();
@@ -205,20 +206,20 @@ namespace Sandbox.Game.Gui
                     if (!found)
                         break;
 
-                    m_tmpSectionIds.Add(section.Index);
+                    m_tmpSectionNames.Add(section.Name);
                 }
             }
 
             if (found)
             {
-                CurrentObject.SectionIndices = m_tmpSectionIds.ToArray();
+                CurrentObject.SectionNames = m_tmpSectionNames.ToArray();
                 if (m_tmpSubpartIds.Count != 0)
                     CurrentObject.SubpartIndices = m_tmpSubpartIds.ToArray();
             }
             else
             {
                 // Clear the lists to signal a problem
-                CurrentObject.SectionIndices = new int[0];
+                CurrentObject.SectionNames = new string[0];
                 CurrentObject.SubpartIndices = null;
             }
 
@@ -316,7 +317,7 @@ namespace Sandbox.Game.Gui
     struct MyHudSelectedObjectStatus
     {
         public IMyUseObject Instance;
-        public int[] SectionIndices;
+        public string[] SectionNames;
         public int InstanceId;
         public uint[] SubpartIndices;
 
@@ -325,7 +326,7 @@ namespace Sandbox.Game.Gui
         public void Reset()
         {
             Instance = null;
-            SectionIndices = null;
+            SectionNames = null;
             InstanceId = -1;
             SubpartIndices = null;
             Style = MyHudObjectHighlightStyle.None;

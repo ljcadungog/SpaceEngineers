@@ -22,6 +22,7 @@ using VRage.ObjectBuilders;
 using Sandbox.Engine.Voxels;
 using Sandbox.Game.WorldEnvironment.ObjectBuilders;
 using VRage.ModAPI;
+using VRage.Profiler;
 
 namespace Sandbox.Game.Entities.Planet
 {
@@ -127,7 +128,13 @@ namespace Sandbox.Game.Entities.Planet
 
         public void Update(bool doLazyUpdates = true, bool forceUpdate = false)
         {
+            var tempMaxLod = MaxLod;
             MaxLod = MathHelper.Log2Floor((int)(MySandboxGame.Config.VegetationDrawDistance / EnvironmentDefinition.SectorSize));
+            if (tempMaxLod != MaxLod)
+            {
+                CloseAll();
+                forceUpdate = true;
+            }
 
             UpdateClipmaps();
 
@@ -496,7 +503,7 @@ namespace Sandbox.Game.Entities.Planet
             return true;
         }
 
-        public override MyObjectBuilder_ComponentBase Serialize()
+        public override MyObjectBuilder_ComponentBase Serialize(bool copy = false)
         {
             var builder = new MyObjectBuilder_PlanetEnvironmentComponent();
 
@@ -814,7 +821,12 @@ namespace Sandbox.Game.Entities.Planet
 
         public MyPhysicalModelDefinition GetModelForId(short id)
         {
-            return m_physicalModels[id];
+            if (id < m_physicalModels.Count)
+            {
+                return m_physicalModels[id];
+            }
+
+            return null;
         }
 
         public void GetDefinition(ushort index, out MyRuntimeEnvironmentItemInfo def)

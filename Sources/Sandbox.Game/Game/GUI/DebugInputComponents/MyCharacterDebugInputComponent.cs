@@ -7,7 +7,7 @@ using Sandbox.Game.World;
 using System.Linq;
 using Sandbox.Definitions;
 using Sandbox.Game.Multiplayer;
-using VRage.Animations;
+using VRageRender.Animations;
 using VRage.Game;
 using VRage.Game.Entity;
 using VRage.Game.Entity.UseObject;
@@ -53,7 +53,7 @@ namespace Sandbox.Game.Gui
                    return true;
                });
 
-            AddShortcut(MyKeys.NumPad7, true, true, false, false,
+            AddShortcut(MyKeys.NumPad7, true, false, false, false,
                () => "Use next ship",
                delegate
                {
@@ -82,7 +82,7 @@ namespace Sandbox.Game.Gui
 
         private void KillEveryoneAround()
         {
-            if (MySession.Static.LocalCharacter == null || !Sync.IsServer || !MySession.Static.IsAdmin ||
+            if (MySession.Static.LocalCharacter == null || !Sync.IsServer || !MySession.Static.HasCreativeRights ||
                 !MySession.Static.IsAdminMenuEnabled)
                 return;
 
@@ -311,24 +311,31 @@ namespace Sandbox.Game.Gui
                 m_boneRefToIndex = new Dictionary<MyCharacterBone, int>(256);
             }
 
-            MyCharacter character = MySession.Static != null ? MySession.Static.LocalCharacter : null;
-            if (character == null)
+            if (MySessionComponentAnimationSystem.Static == null)
                 return;
-            List<MyAnimationClip.BoneState> bones = character.AnimationController.LastRawBoneResult;
-            MyCharacterBone[] characterBones = character.AnimationController.CharacterBones;
-            m_boneRefToIndex.Clear();
-            for (int i = 0; i < characterBones.Length; i++)
+
+
+            foreach (var animComp in MySessionComponentAnimationSystem.Static.RegisteredAnimationComponents)
             {
-                m_boneRefToIndex.Add(character.AnimationController.CharacterBones[i], i);
-            }
-
-
-            for (int i = 0; i < characterBones.Length; i++)
-                if (characterBones[i].Parent == null)
+                MyCharacter character = animComp != null ? (animComp.Entity as MyCharacter) : null;
+                if (character == null)
+                    return;
+                List<MyAnimationClip.BoneState> bones = character.AnimationController.LastRawBoneResult;
+                MyCharacterBone[] characterBones = character.AnimationController.CharacterBones;
+                m_boneRefToIndex.Clear();
+                for (int i = 0; i < characterBones.Length; i++)
                 {
-                    MatrixD worldMatrix = character.PositionComp.WorldMatrix;
-                    DrawBoneHierarchy(character, ref worldMatrix, characterBones, bones, i);
+                    m_boneRefToIndex.Add(character.AnimationController.CharacterBones[i], i);
                 }
+
+
+                for (int i = 0; i < characterBones.Length; i++)
+                    if (characterBones[i].Parent == null)
+                    {
+                        MatrixD worldMatrix = character.PositionComp.WorldMatrix;
+                        DrawBoneHierarchy(character, ref worldMatrix, characterBones, bones, i);
+                    }
+            }
         }
 
         private void DrawBoneHierarchy(MyCharacter character, ref MatrixD parentTransform, MyCharacterBone[] characterBones, List<MyAnimationClip.BoneState> rawBones, int boneIndex)

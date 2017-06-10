@@ -31,6 +31,7 @@ using Sandbox.Game.EntityComponents;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.Game.Entity;
+using VRage.Profiler;
 
 #endregion
 
@@ -1196,8 +1197,8 @@ namespace Sandbox.Game.Entities.Cube
         internal ushort? GetContactCompoundId(Vector3I position, Vector3D constactPos)
         {
             List<HkdBreakableShape> inersectingShapes = new List<HkdBreakableShape>();
-            Matrix bodyMatrix = GetRigidBodyMatrix();
-            Quaternion bodyRot = Quaternion.CreateFromRotationMatrix(bodyMatrix);
+            GetRigidBodyMatrix(out m_bodyMatrix);
+            Quaternion bodyRot = Quaternion.CreateFromRotationMatrix(m_bodyMatrix);
 
             Debug.Assert(BreakableBody != null, "BreakableBody was null in GetContactCounpoundId!");
             if (BreakableBody == null)
@@ -1211,7 +1212,7 @@ namespace Sandbox.Game.Entities.Cube
                 MyLog.Default.WriteLine("HavokWorld.DestructionWorld was null in GetContactCompoundId!");
             }
 
-            HkDestructionUtils.FindAllBreakableShapesIntersectingSphere(HavokWorld.DestructionWorld, BreakableBody, bodyRot, bodyMatrix.Translation,
+            HkDestructionUtils.FindAllBreakableShapesIntersectingSphere(HavokWorld.DestructionWorld, BreakableBody, bodyRot, m_bodyMatrix.Translation,
                 WorldToCluster(constactPos), 0.1f, inersectingShapes);
 
             ushort? compoundId = null;

@@ -12,6 +12,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Sandbox.Game.Screens;
+using Sandbox.Game.World;
 using VRage;
 using VRage;
 using VRage.FileSystem;
@@ -190,7 +192,14 @@ namespace Sandbox.Game.Gui
         {
             base.HandleInput(receivedFocusInThisUpdate);
 
-            if (MyInput.Static.IsNewKeyPressed(MyKeys.F12) || MyInput.Static.IsNewKeyPressed(MyKeys.F11) || MyInput.Static.IsNewKeyPressed(MyKeys.F10))
+            if (MyInput.Static.IsNewKeyPressed(MyKeys.F11) && MySession.Static.IsServer)
+            {
+                // Show Scripting tools
+                MyScreenManager.AddScreen(new MyGuiScreenScriptingTools());
+                CloseScreen();
+            }
+
+            if (MyInput.Static.IsNewKeyPressed(MyKeys.F12) || MyInput.Static.IsNewKeyPressed(MyKeys.F10))
             {
                 this.CloseScreen();
             }
@@ -242,6 +251,7 @@ namespace Sandbox.Game.Gui
 
         private void CopyErrorLogToClipboard(MyGuiControlButton obj)
         {
+#if !XB1
             StringBuilder text = new StringBuilder();
 
             if (MyDefinitionErrors.GetErrors().Count() == 0)
@@ -258,6 +268,9 @@ namespace Sandbox.Game.Gui
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             thread.Join();
+#else // XB1
+            System.Diagnostics.Debug.Assert(false, "XB1 TODO?");
+#endif // XB1
         }
     }
 }

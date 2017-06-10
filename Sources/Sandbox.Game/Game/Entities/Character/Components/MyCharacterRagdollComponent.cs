@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using VRage.Animations;
+using VRageRender.Animations;
 using VRage.Game.Components;
 using VRage.FileSystem;
 using VRage.Utils;
@@ -164,6 +164,8 @@ namespace Sandbox.Game.Entities.Character.Components
             //RagdollMapper.UpdateRagdollPose(); Note: If we don't want to animate ragdoll, we don't need to call this, just use phys simulation..
             
             RagdollMapper.SetVelocities();
+
+            RagdollMapper.SetLimitedVelocities();
 
             RagdollMapper.DebugDraw(Character.WorldMatrix);
         }
@@ -386,7 +388,7 @@ namespace Sandbox.Game.Entities.Character.Components
             
             if (RagdollMapper != null && RagdollMapper.Ragdoll != null && RagdollMapper.Ragdoll.InWorld)
             {
-                RagdollMapper.UpdateCharacterPose(Character.IsDead ? 1.0f : 0.1f, Character.IsDead ? 1.0f : 0.0f);
+                RagdollMapper.UpdateCharacterPose(Character.IsDead ? 1.0f : 0.2f, Character.IsDead ? 1.0f : 0.0f);
                 RagdollMapper.DebugDraw(Character.WorldMatrix);
 
                 var characterBones = Character.AnimationController.CharacterBones;
@@ -452,6 +454,12 @@ namespace Sandbox.Game.Entities.Character.Components
 
         public override void OnAddedToContainer()
         {
+            if (MySandboxGame.IsDedicated)
+            {
+                Container.Remove<MyCharacterRagdollComponent>();
+                return;
+            }
+
             if (MyFakes.ENABLE_RAGDOLL_DEBUG) Debug.WriteLine("RagdollComponent.OnAddedToContainer");
             base.OnAddedToContainer();
             NeedsUpdateAfterSimulation = true;

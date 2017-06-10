@@ -36,6 +36,7 @@ using VRage.Game.Entity;
 using VRage.Game;
 using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Interfaces;
+using VRage.Sync;
 
 namespace Sandbox.Game.Weapons
 {
@@ -63,9 +64,11 @@ namespace Sandbox.Game.Weapons
         Vector3 m_shootDirection;
         private int m_currentBarrel;
 
+        private MyEntity[] m_shootIgnoreEntities;   // for projectiles to know which entities to ignore
+
         protected override bool CheckIsWorking()
         {
-			return ResourceSink.IsPowered && base.CheckIsWorking();
+            return ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId) && base.CheckIsWorking();
         }
 
         private MyMultilineConveyorEndpoint m_endpoint;
@@ -80,21 +83,37 @@ namespace Sandbox.Game.Weapons
             AddDebugRenderComponent(new Components.MyDebugRenderComponentDrawConveyorEndpoint(m_endpoint));
         }
 
-        public MySmallMissileLauncher()
+        public override bool IsStationary()
         {
-            CreateTerminalControls();
-
-            m_gunBase = new MyGunBase();
-            m_soundEmitter = new MyEntity3DSoundEmitter(this, true);
-            m_useConveyorSystem.Value = true;
-            SyncType.Append(m_gunBase);
+            return true;
         }
 
-        static void CreateTerminalControls()
+        public MySmallMissileLauncher()
+        {
+            m_shootIgnoreEntities = new MyEntity[] { this };
+
+#if XB1 // XB1_SYNC_NOREFLECTION
+            m_useConveyorSystem = SyncType.CreateAndAddProp<bool>();
+#endif // XB1
+            CreateTerminalControls();
+
+#if XB1 // XB1_SYNC_NOREFLECTION
+            m_gunBase = new MyGunBase(SyncType);
+#else // !XB1
+            m_gunBase = new MyGunBase();
+#endif // !XB1
+            m_soundEmitter = new MyEntity3DSoundEmitter(this, true);
+            m_useConveyorSystem.Value = true;
+#if !XB1 // !XB1_SYNC_NOREFLECTION
+            SyncType.Append(m_gunBase);
+#endif // !XB1
+        }
+
+        protected override void CreateTerminalControls()
         {
             if (MyTerminalControlFactory.AreControlsCreated<MySmallMissileLauncher>())
                 return;
-
+            base.CreateTerminalControls();
             var useConveyor = new MyTerminalControlOnOffSwitch<MySmallMissileLauncher>("UseConveyor", MySpaceTexts.Terminal_UseConveyorSystem);
             useConveyor.Getter = (x) => (x).UseConveyorSystem;
             useConveyor.Setter = (x, v) => (x).UseConveyorSystem = v;
@@ -159,7 +178,7 @@ namespace Sandbox.Game.Weapons
             sinkComp.Init(
                 resourceSinkGroup,
                 MyEnergyConstants.MAX_REQUIRED_POWER_SHIP_GUN,
-                () => (Enabled && IsFunctional) ? ResourceSink.MaxRequiredInput : 0.0f);
+                () => (Enabled && IsFunctional) ? ResourceSink.MaxRequiredInputByType(MyResourceDistributorComponent.ElectricityId) : 0.0f);
             ResourceSink = sinkComp;
             ResourceSink.IsPoweredChanged += Receiver_IsPoweredChanged;
 
@@ -360,6 +379,12 @@ namespace Sandbox.Game.Weapons
             get { return BlockDefinition.Id; }
         }
 
+        public void UpdateSoundEmitter()
+        {
+            if (m_soundEmitter != null)
+                m_soundEmitter.Update();
+        }
+
         #endregion
 
         private void StartSound(MySoundPair cueEnum)
@@ -382,6 +407,7 @@ namespace Sandbox.Game.Weapons
         #region Inventory
         
         protected Sync<bool> m_useConveyorSystem;
+
         public bool UseConveyorSystem
         {
             get
@@ -444,7 +470,7 @@ namespace Sandbox.Game.Weapons
                 status = MyGunStatusEnum.AccessDenied;
                 return false;
             }
-			if (!ResourceSink.IsPowered)
+            if (!ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId))
             {
                 status = MyGunStatusEnum.OutOfPower;
                 return false;
@@ -630,9 +656,9 @@ namespace Sandbox.Game.Weapons
 
         #region IMyGunBaseUser
 
-        MyEntity IMyGunBaseUser.IgnoreEntity
+        MyEntity[] IMyGunBaseUser.IgnoreEntities
         {
-            get { return this; }
+            get { return m_shootIgnoreEntities; }
         }
 
         MyEntity IMyGunBaseUser.Weapon

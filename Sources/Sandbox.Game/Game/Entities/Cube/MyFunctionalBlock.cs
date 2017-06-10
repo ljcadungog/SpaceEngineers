@@ -1,11 +1,15 @@
 ﻿using Sandbox.Common.ObjectBuilders;
+using Sandbox.Engine.Utils;
 using Sandbox.Game.Gui;
 using Sandbox.Game.Localization;
 using Sandbox.Game.Multiplayer;
+using Sandbox.Game.World;
 using System;
 using VRage;
 using VRage.Game;
 using VRage.ModAPI;
+using VRage.Sync;
+using VRage.Utils;
 
 namespace Sandbox.Game.Entities.Cube
 {
@@ -45,17 +49,19 @@ namespace Sandbox.Game.Entities.Cube
 
         public MyFunctionalBlock()
         {
+#if XB1 // XB1_SYNC_NOREFLECTION
+            m_enabled = SyncType.CreateAndAddProp<bool>();
+#endif // BX1
             CreateTerminalControls();
-
-            NeedsUpdate |= MyEntityUpdateEnum.EACH_100TH_FRAME;
-
+          
             m_enabled.ValueChanged += (x)=> EnabledSyncChanged();
         }
 
-        static void CreateTerminalControls()
+        protected override void CreateTerminalControls()
         {
             if (MyTerminalControlFactory.AreControlsCreated<MyFunctionalBlock>())
                 return;
+            base.CreateTerminalControls();
 
             var onOffSwitch = new MyTerminalControlOnOffSwitch<MyFunctionalBlock>("OnOff", MySpaceTexts.BlockAction_Toggle);
             onOffSwitch.Getter = (x) => x.Enabled;
@@ -125,18 +131,15 @@ namespace Sandbox.Game.Entities.Cube
             }
         }
 
-        public override void UpdateBeforeSimulation100()
+        public virtual void UpdateSoundEmitters()
         {
             if (m_soundEmitter != null)
-            {
                 m_soundEmitter.Update();
-            }
-            base.UpdateBeforeSimulation100();
         }
 
         protected virtual void OnStartWorking()
         {
-            if (this.InScene && this.CubeGrid.Physics != null && m_soundEmitter != null && m_baseIdleSound != null && m_baseIdleSound != MySoundPair.Empty)
+            if (InScene && CubeGrid.Physics != null && m_soundEmitter != null && m_baseIdleSound != null && m_baseIdleSound != MySoundPair.Empty)
                 m_soundEmitter.PlaySound(m_baseIdleSound, true);
         }
 
@@ -173,5 +176,40 @@ namespace Sandbox.Game.Entities.Cube
                 m_soundEmitter.StopSound(true);
         }
 
+        public override void OnDestroy()
+        {
+            if (MyFakes.SHOW_DAMAGE_EFFECTS)
+            {
+                //particle effect
+                if (BlockDefinition.DestroyEffect.Length > 0)
+                {
+                    if (BlockDefinition.RatioEnoughForDamageEffect(SlimBlock.BuildIntegrity / SlimBlock.MaxIntegrity))//grinded down
+                        return;
+                    MyParticleEffect effect;
+                    if (MyParticlesManager.TryCreateParticleEffect(BlockDefinition.DestroyEffect, out effect))
+                    {
+                        effect.Loop = false;
+                        effect.WorldMatrix = WorldMatrix;
+                    }
+                }
+
+                //sound effect
+                if (!BlockDefinition.DestroySound.Equals(MySoundPair.Empty))
+                {
+                    MyEntity3DSoundEmitter emitter = MyAudioComponent.TryGetSoundEmitter();
+                    if (emitter != null)
+                    {
+                        emitter.Entity = this;
+                        emitter.PlaySound(BlockDefinition.DestroySound);
+                    }
+                }
+            }
+            base.OnDestroy();
+        }
+
+        public virtual int GetBlockSpecificState()
+        {
+            return -1;
+        }
     }
 }

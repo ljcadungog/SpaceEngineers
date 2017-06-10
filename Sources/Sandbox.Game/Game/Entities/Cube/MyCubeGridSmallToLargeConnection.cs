@@ -26,7 +26,6 @@ using Sandbox.Common.ObjectBuilders.Definitions;
 using VRage.Plugins;
 using System.Reflection;
 using Sandbox.Game.Entities;
-using VRage.Voxels;
 using Sandbox.Game.GameSystems.Electricity;
 using Sandbox.Game.Localization;
 using Sandbox.Game.GameSystems.StructuralIntegrity;
@@ -122,11 +121,11 @@ namespace Sandbox.Game.Entities.Cube
                 aabb = (BoundingBoxD)block.FatBlock.Model.BoundingBox;
                 Matrix m;
                 block.FatBlock.Orientation.GetMatrix(out m);
-                aabb = aabb.Transform(m);
+                aabb = aabb.TransformFast(m);
                 aabb.Translate(aabbCenter);
             }
 
-            aabb = aabb.Transform(block.CubeGrid.WorldMatrix);
+            aabb = aabb.TransformFast(block.CubeGrid.WorldMatrix);
             aabb.Inflate(0.125);
 
             List<MyEntity> boxOverlapList = new List<MyEntity>();
@@ -174,12 +173,12 @@ namespace Sandbox.Game.Entities.Cube
                 aabb = (BoundingBoxD)block.FatBlock.Model.BoundingBox;
                 Matrix m;
                 block.FatBlock.Orientation.GetMatrix(out m);
-                aabb = aabb.Transform(m);
+                aabb = aabb.TransformFast(m);
                 aabb.Translate(aabbCenter);
             }
 
             aabb.Inflate(0.125);
-            var aabbWorld = aabb.Transform(block.CubeGrid.WorldMatrix);
+            var aabbWorld = aabb.TransformFast(block.CubeGrid.WorldMatrix);
 
             List<MyEntity> boxOverlapList = new List<MyEntity>();
             MyEntities.GetElementsInBox(ref aabbWorld, boxOverlapList);
@@ -237,7 +236,7 @@ namespace Sandbox.Game.Entities.Cube
         private static void CheckNeighborBlocks(MySlimBlock block, BoundingBoxD aabbForNeighbors, MyCubeGrid cubeGrid, List<MySlimBlock> blocks)
         {
             var compositeTransformToGrid = block.CubeGrid.WorldMatrix * cubeGrid.PositionComp.WorldMatrixNormalizedInv;
-            var aabbForNeighborsInGrid = aabbForNeighbors.Transform(ref compositeTransformToGrid);
+            var aabbForNeighborsInGrid = aabbForNeighbors.TransformFast(ref compositeTransformToGrid);
             Vector3I start = Vector3I.Round(cubeGrid.GridSizeR * aabbForNeighborsInGrid.Min);
             Vector3I end = Vector3I.Round(cubeGrid.GridSizeR * aabbForNeighborsInGrid.Max);
             Vector3I startIt = Vector3I.Min(start, end);
@@ -543,8 +542,8 @@ namespace Sandbox.Game.Entities.Cube
                     // Convert free small grids to dynamic
                     foreach (var smallGrid in m_tmpGrids)
                     {
-                        if (!smallGrid.TestDynamic && !SmallGridIsStatic(smallGrid))
-                            smallGrid.TestDynamic = true;
+                        if (smallGrid.TestDynamic == MyCubeGrid.MyTestDynamicReason.NoReason && !SmallGridIsStatic(smallGrid))
+                            smallGrid.TestDynamic = MyCubeGrid.MyTestDynamicReason.GridSplit;
                     }
                 }
 
@@ -560,8 +559,8 @@ namespace Sandbox.Game.Entities.Cube
                     if (Sync.IsServer && block.CubeGrid.GetBlocks().Count > 0)
                     {
                         // Convert free small grid to dynamic
-                        if (!block.CubeGrid.TestDynamic && !SmallGridIsStatic(block.CubeGrid))
-                            block.CubeGrid.TestDynamic = true;
+                        if (block.CubeGrid.TestDynamic == MyCubeGrid.MyTestDynamicReason.NoReason && !SmallGridIsStatic(block.CubeGrid))
+                            block.CubeGrid.TestDynamic =  MyCubeGrid.MyTestDynamicReason.GridSplit;
                     }
                     return;
                 }
@@ -594,8 +593,8 @@ namespace Sandbox.Game.Entities.Cube
                 if (Sync.IsServer && !m_mapSmallGridToConnectedBlocks.TryGetValue(block.CubeGrid, out connections) && block.CubeGrid.GetBlocks().Count > 0)
                 {
                     // Convert free small grid to dynamic
-                    if (!block.CubeGrid.TestDynamic && !SmallGridIsStatic(block.CubeGrid))
-                        block.CubeGrid.TestDynamic = true;
+                    if (block.CubeGrid.TestDynamic == MyCubeGrid.MyTestDynamicReason.NoReason && !SmallGridIsStatic(block.CubeGrid))
+                        block.CubeGrid.TestDynamic = MyCubeGrid.MyTestDynamicReason.GridSplit;
                 }
             }
 
@@ -660,8 +659,8 @@ namespace Sandbox.Game.Entities.Cube
                 // Convert free small grids to dynamic
                 foreach (var smallGrid in m_tmpGrids)
                 {
-                    if (smallGrid.IsStatic && !smallGrid.TestDynamic && !SmallGridIsStatic(smallGrid))
-                        smallGrid.TestDynamic = true;
+                    if (smallGrid.IsStatic && smallGrid.TestDynamic == MyCubeGrid.MyTestDynamicReason.NoReason && !SmallGridIsStatic(smallGrid))
+                        smallGrid.TestDynamic = MyCubeGrid.MyTestDynamicReason.GridSplit;
                 }
             }
 
@@ -949,12 +948,12 @@ namespace Sandbox.Game.Entities.Cube
             {
                 // Test dynamic
                 if (!m_mapSmallGridToConnectedBlocks.TryGetValue(originalGrid, out connections) || connections.Count == 0)
-                    originalGrid.TestDynamic = true;
+                    originalGrid.TestDynamic = MyCubeGrid.MyTestDynamicReason.GridSplit;
 
                 foreach (var split in gridSplits)
                 {
                     if (!m_mapSmallGridToConnectedBlocks.TryGetValue(split, out connections) || connections.Count == 0)
-                        split.TestDynamic = true;
+                        split.TestDynamic = MyCubeGrid.MyTestDynamicReason.GridSplit;
                 }
             }
         }

@@ -5,11 +5,18 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using VRage.Network;
+#if XB1 // XB1_ALLINONEASSEMBLY
+using VRage.Utils;
+#endif // XB1
 
 namespace VRage.Network
 {
     public abstract class MyReplicationLayerBase
     {
+#if XB1 // XB1_ALLINONEASSEMBLY
+        private bool m_registered = false;
+#endif // XB1
+        
         private static DBNull e = DBNull.Value;
         protected readonly MyTypeTable m_typeTable = new MyTypeTable();
 
@@ -47,7 +54,7 @@ namespace VRage.Network
 
         private CallSite GetCallSite<T>(Func<T, Delegate> callSiteGetter, T arg)
         {
-            Debug.Assert(callSiteGetter.Target == null, "RaiseEvent is designed for anonymous methods (no lambdas or instance methods)");
+            //Debug.Assert(callSiteGetter.Target == null, "RaiseEvent is designed for anonymous methods (no lambdas or instance methods)");
 
             CallSite site;
             if (arg == null)
@@ -146,7 +153,15 @@ namespace VRage.Network
             {
                 return;
             }
+#if XB1 // XB1_ALLINONEASSEMBLY
+            System.Diagnostics.Debug.Assert(m_registered == false);
+            if (m_registered == true)
+                return;
+            m_registered = true;
+            foreach (var type in MyAssembly.GetTypes())
+#else // !XB1
             foreach (var type in assembly.GetTypes())
+#endif // !XB1
             {
                 if (MyTypeTable.ShouldRegister(type))
                 {

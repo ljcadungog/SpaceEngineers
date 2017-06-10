@@ -2,6 +2,7 @@
 using SharpDX.DXGI;
 using System;
 using System.Collections.Generic;
+using VRage.Render11.Resources;
 using VRage.Utils;
 using VRageMath;
 using Buffer = SharpDX.Direct3D11.Buffer;
@@ -41,19 +42,15 @@ namespace VRageRender
         }
     }
 
-    struct MyVertexDataProxy_2
-    {
-        internal Buffer[] VB;
-        internal int[] VertexStrides;
-        internal Buffer IB;
-        internal Format IndexFormat;
-    }
-
     /// <summary>
     /// Contains data used for culling, but should not own any itself
     /// </summary>
     [PooledObject]
+#if XB1
+    class MyCullProxy : IMyPooledObjectCleaner
+#else // !XB1
     class MyCullProxy
+#endif // !XB1
     {
         internal ulong[] SortingKeys;
         internal MyRenderableProxy [] RenderableProxies;
@@ -63,11 +60,18 @@ namespace VRageRender
 
         internal uint OwnerID { get { return Parent != null ? Parent.Owner.ID : 0; } }
 
+#if XB1
+        public void ObjectCleaner()
+        {
+            Clear();
+        }
+#else // !XB1
         [PooledObjectCleaner]
         public static void Clear(MyCullProxy cullProxy)
         {
             cullProxy.Clear();
         }
+#endif // !XB1
 
         internal void Clear()
         {
@@ -112,7 +116,11 @@ namespace VRageRender
     /// Does not own any data
     /// </summary>
     [PooledObject]
+#if XB1
+    class MyRenderableProxy : IMyPooledObjectCleaner
+#else // !XB1
     class MyRenderableProxy
+#endif // !XB1
     {
         internal const float NO_DITHER_FADE = Single.PositiveInfinity;
 
@@ -123,11 +131,11 @@ namespace VRageRender
         internal Matrix[] SkinningMatrices;
 
         internal LodMeshId Mesh;
-        internal MyMergedLodMeshId MergedMesh;
         internal InstancingId Instancing;
 
         internal MyMaterialShadersBundleId DepthShaders;
         internal MyMaterialShadersBundleId Shaders;
+        internal MyMaterialShadersBundleId HighlightShaders;
         internal MyMaterialShadersBundleId ForwardShaders;
 
         internal MyDrawSubmesh DrawSubmesh;
@@ -146,17 +154,26 @@ namespace VRageRender
 
         internal int Lod;
 
-        internal Buffer ObjectBuffer; // different if instancing component/skinning components are on
+        internal IConstantBuffer ObjectBuffer; // different if instancing component/skinning components are on
 
         internal MyActorComponent Parent;
 
-        internal MyStringId Material;
+        internal MyMeshMaterialId Material;
+        // Used to know what materials have been omitted after geometry part merging
+        internal HashSet<string> UnusedMaterials;
 
+#if XB1
+        public void ObjectCleaner()
+        {
+            Clear();
+        }
+#else // !XB1
         [PooledObjectCleaner]
         public static void Clear(MyRenderableProxy renderableProxy)
         {
             renderableProxy.Clear();
         }
+#endif // !XB1
 
         internal void Clear()
         {
@@ -165,7 +182,6 @@ namespace VRageRender
             NonVoxelObjectData = MyObjectDataNonVoxel.Invalid;
             VoxelCommonObjectData = MyObjectDataVoxelCommon.Invalid;
             Mesh = LodMeshId.NULL;
-            MergedMesh = MyMergedLodMeshId.NULL;
             Instancing = InstancingId.NULL;
             DepthShaders = MyMaterialShadersBundleId.NULL;
             Shaders = MyMaterialShadersBundleId.NULL;
@@ -181,14 +197,16 @@ namespace VRageRender
             Lod = 0;
             ObjectBuffer = null;
             Parent = null;
-            Material = MyStringId.NullOrEmpty;
+            Material = MyMeshMaterialId.NULL;
+            UnusedMaterials = UnusedMaterials ?? new HashSet<string>();
+            UnusedMaterials.Clear();
         }
 	};
 
     struct MyConstantsPack
     {
         internal byte[] Data;
-        internal Buffer CB;
+        internal IConstantBuffer CB;
         internal int Version;
         internal MyBindFlag BindFlag;
 
@@ -215,7 +233,7 @@ namespace VRageRender
     struct MySrvTable
     {
         internal int StartSlot;
-        internal IShaderResourceBindable[] SRVs;
+        internal ISrvBindable[] Srvs;
         internal MyBindFlag BindFlag;
         internal int Version;
     }
@@ -223,7 +241,7 @@ namespace VRageRender
     struct MyMaterialProxy_2
     {
         internal MyConstantsPack MaterialConstants;
-        internal MySrvTable MaterialSRVs;
+        internal MySrvTable MaterialSrvs;
     }
 
     enum MyDrawCommandEnum
@@ -256,8 +274,7 @@ namespace VRageRender
 
         // object
         internal MyConstantsPack ObjectConstants;
-        internal MySrvTable ObjectSRVs;
-        internal MyVertexDataProxy_2 VertexData;
+        internal MySrvTable ObjectSrvs;
         internal int InstanceCount;
         internal int StartInstance;
 

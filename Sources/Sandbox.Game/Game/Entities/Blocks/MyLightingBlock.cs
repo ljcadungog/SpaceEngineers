@@ -21,6 +21,9 @@ using VRage.Game;
 using VRage.Utils;
 using VRage.ModAPI;
 using VRage.Game.Models;
+using VRage.Profiler;
+using VRage.Sync;
+using VRageRender;
 
 namespace Sandbox.Game.Entities.Blocks
 {
@@ -102,7 +105,7 @@ namespace Sandbox.Game.Entities.Blocks
 
         protected override bool CheckIsWorking()
         {
-			return (MyFakes.ENABLE_LIGHT_WITHOUT_POWER || ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId)) && base.CheckIsWorking();
+			return (ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId)) && base.CheckIsWorking();
         }
 
         public bool IsLargeLight { get; private set; }
@@ -121,11 +124,11 @@ namespace Sandbox.Game.Entities.Blocks
         #endregion
 
         #region Terminal properties
-        static void CreateTerminalControls()
+        protected override void CreateTerminalControls()
         {
             if (MyTerminalControlFactory.AreControlsCreated<MyLightingBlock>())
                 return;
-
+            base.CreateTerminalControls();
             var lightColor = new MyTerminalControlColor<MyLightingBlock>("Color", MySpaceTexts.BlockPropertyTitle_LightColor);
             lightColor.Getter = (x) => x.Color;
             lightColor.Setter = (x, v) => x.m_lightColor.Value = v;
@@ -199,7 +202,8 @@ namespace Sandbox.Game.Entities.Blocks
                     m_light.ReflectorColor = value;
 					Render.BulbColor = ComputeBulbColor();
                     UpdateEmissivity(true);
-                    RaisePropertiesChanged();
+                    UpdateLightProperties();
+                    RaisePropertiesChanged();                    
                 }
             }
         }
@@ -212,6 +216,7 @@ namespace Sandbox.Game.Entities.Blocks
                 if (m_light.Range != value)
                 {
                     m_light.Range = value;
+                    UpdateLightProperties();
                     RaisePropertiesChanged();
                 }
             }
@@ -225,6 +230,7 @@ namespace Sandbox.Game.Entities.Blocks
                 if (m_light.ReflectorRange != value)
                 {
                     m_light.ReflectorRange = value;
+                    UpdateLightProperties();
                     RaisePropertiesChanged();
                 }
             }
@@ -286,6 +292,7 @@ namespace Sandbox.Game.Entities.Blocks
                 if (m_light.Falloff != value)
                 {
                     m_light.Falloff = value;
+                    UpdateLightProperties();
                     RaisePropertiesChanged();
                 }
             }
@@ -300,6 +307,7 @@ namespace Sandbox.Game.Entities.Blocks
                 {
                     m_intesity.Value = value;
                     UpdateIntensity();
+                    UpdateLightProperties();
                     RaisePropertiesChanged();
                 }
             }
@@ -314,7 +322,7 @@ namespace Sandbox.Game.Entities.Blocks
             sinkComp.Init(
                 BlockDefinition.ResourceSinkGroup,
                 BlockDefinition.RequiredPowerInput,
-                () => (Enabled && IsFunctional) ? ResourceSink.MaxRequiredInput : 0f);
+                () => (Enabled && IsFunctional) ? ResourceSink.MaxRequiredInputByType(MyResourceDistributorComponent.ElectricityId) : 0f);
             sinkComp.IsPoweredChanged += Receiver_IsPoweredChanged;
             ResourceSink = sinkComp;
 
@@ -358,11 +366,12 @@ namespace Sandbox.Game.Entities.Blocks
             m_light.ReflectorOn = false;
             m_light.LightOn = false;
             m_light.GlareOn = false;
-            
+
+            UpdateRadius(m_light.IsTypeSpot ? reflectorRadius : radius);
             UpdateIntensity();
             UpdateLightPosition();
 
-            NeedsUpdate |= MyEntityUpdateEnum.EACH_FRAME | MyEntityUpdateEnum.BEFORE_NEXT_FRAME | MyEntityUpdateEnum.EACH_100TH_FRAME;
+            NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME | MyEntityUpdateEnum.EACH_100TH_FRAME;
             Render.NeedsDrawFromParent = true;
 
 			
@@ -409,18 +418,24 @@ namespace Sandbox.Game.Entities.Blocks
             m_lightFalloff.ValueChanged += x => LightFalloffChanged();
         }
         #endregion
+
         void LightFalloffChanged()
         {
             Falloff = m_lightFalloff.Value;
         }
 
-        virtual protected void LightRadiusChanged()
+        virtual protected void UpdateRadius(float value)
         {
             if (m_light.IsTypeSpot)
             {
-                ReflectorRadius = m_lightRadius.Value;
+                ReflectorRadius = value;
             }
-            else Radius = m_lightRadius.Value;
+            else Radius = value;
+        }
+
+        private void LightRadiusChanged()
+        {
+            UpdateRadius(m_lightRadius.Value);
         }
 
         void LightColorChanged()
@@ -433,6 +448,33 @@ namespace Sandbox.Game.Entities.Blocks
             m_light.ParentID = Render.GetRenderObjectID();
         }
 
+        float GetNewLightPower()
+        {
+            return MathHelper.Clamp(Render.CurrentLightPower + (IsWorking ? 1 : -1) * m_lightTurningOnSpeed, 0, 1);
+        }
+
+        public override void UpdateAfterSimulation100()
+        {
+            if ((MySector.MainCamera.Position - PositionComp.GetPosition()).AbsMax() > MaxLightUpdateDistance)
+            {
+                NeedsUpdate &= ~MyEntityUpdateEnum.EACH_FRAME;
+                return;
+            }
+
+            bool needsUpdateEveryFrame = false;
+
+            needsUpdateEveryFrame |= m_blinkIntervalSeconds > 0;
+
+            needsUpdateEveryFrame |= GetNewLightPower() != Render.CurrentLightPower;
+
+            if (needsUpdateEveryFrame)
+                NeedsUpdate |= MyEntityUpdateEnum.EACH_FRAME;
+            else
+                NeedsUpdate &= ~MyEntityUpdateEnum.EACH_FRAME;
+
+            UpdateLightProperties();
+        }
+
         //lights wont update at all when further any axis
         const int MaxLightUpdateDistance = 5000;
         public override void UpdateAfterSimulation()
@@ -442,7 +484,7 @@ namespace Sandbox.Game.Entities.Blocks
             if ((MySector.MainCamera.Position - PositionComp.GetPosition()).AbsMax() > MaxLightUpdateDistance)
                 return;
 
-            float newLightPower = MathHelper.Clamp(Render.CurrentLightPower + (IsWorking ? 1 : -1) * m_lightTurningOnSpeed, 0, 1);
+            float newLightPower = GetNewLightPower();
 
             if (newLightPower != Render.CurrentLightPower)
             {
@@ -456,20 +498,11 @@ namespace Sandbox.Game.Entities.Blocks
                 UpdateIntensity();
             }
             UpdateLightBlink();
-            UpdateLightPosition();
             UpdateLightProperties();
             UpdateEmissivity(false);
         }
 
-        public override void UpdateAfterSimulation100()
-        {
-            base.UpdateAfterSimulation100();
-            if ((MySector.MainCamera.Position - PositionComp.GetPosition()).AbsMax() > MaxLightUpdateDistance)
-                return;
-
-            m_positionDirty = true;
-        }
-
+  
         protected virtual void UpdateIntensity()
         {
             ProfilerShort.Begin("UpdateIntensity");
@@ -576,17 +609,20 @@ namespace Sandbox.Game.Entities.Blocks
             double lengthSq = diff.LengthSquared();
             if (lengthSq > MIN_MOVEMENT_SQUARED_FOR_UPDATE)
             {
-                if (m_light != null)
-                    m_light.MarkPropertiesDirty();
+                if (m_light != null && m_light.RenderObjectID != MyRenderProxy.RENDER_ID_UNASSIGNED)
+                    m_light.MarkPositionDirty();
             }
             oldWorldPosition = worldPosition;
 
             if (m_oldWorldMatrix.Forward != WorldMatrix.Forward)
             {
-                if (m_light != null)
-                    m_light.MarkPropertiesDirty();
+                if (m_light != null && m_light.RenderObjectID != MyRenderProxy.RENDER_ID_UNASSIGNED)
+                    m_light.MarkPositionDirty();
             }
             m_oldWorldMatrix = WorldMatrix;
+
+            if (m_light != null && m_light.RenderObjectID != MyRenderProxy.RENDER_ID_UNASSIGNED)
+                m_light.UpdateLight();
         }
 
         private void UpdateLightPosition()
@@ -597,16 +633,7 @@ namespace Sandbox.Game.Entities.Blocks
             ProfilerShort.Begin("UpdateLightPosition");
             m_positionDirty = false;
 
-            var newPos = PositionComp.GetPosition() + Vector3.TransformNormal(m_lightLocalPosition, WorldMatrix);
-
-            if (Vector3D.DistanceSquared(m_lightWorldPosition, newPos) > MIN_MOVEMENT_SQUARED_FOR_UPDATE)
-            {
-                m_lightWorldPosition = newPos;
-                // seems unnecessary, as we are already updating position
-                //m_light.MarkPositionDirty();
-            }
-
-            m_light.ParentID = Render.GetRenderObjectID();
+            m_lightWorldPosition = PositionComp.GetPosition() + Vector3.TransformNormal(m_lightLocalPosition, WorldMatrix);
 
             MatrixD toLocal = PositionComp.WorldMatrixNormalizedInv;
             m_light.Position = Vector3D.Transform(m_lightWorldPosition, toLocal);

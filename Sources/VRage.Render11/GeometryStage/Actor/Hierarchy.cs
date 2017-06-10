@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using VRage.Generics;
+using VRage.Render11.Resources;
 using VRage.Utils;
 using VRageMath;
 using Matrix = VRageMath.Matrix;
@@ -76,7 +77,7 @@ namespace VRageRender
 
     class MyBigMeshTable
     {
-        internal static MyMeshTableSRV Table = new MyMeshTableSRV();
+        internal static MyMeshTableSrv Table = new MyMeshTableSrv();
     }
 
     class MyCullProxy_2
@@ -147,7 +148,7 @@ namespace VRageRender
             get { return m_mergeGroup; }
         }
 
-        internal MyMaterialMergeGroup(MyMeshTableSRV meshTable, MyMeshMaterialId matId, int index)
+        internal MyMaterialMergeGroup(MyMeshTableSrv meshTable, MyMeshMaterialId matId, int index)
         {
             m_mergeGroup = new MyMergeInstancing(meshTable);
             m_rootMaterialRK = MyMeshMaterials1.Table[matId.Index].RepresentationKey;
@@ -189,8 +190,9 @@ namespace VRageRender
             }
         }
 
-        internal void BuildProxy(out MyRenderableProxy_2 proxy, out UInt64 key)
+        internal unsafe void BuildProxy(out MyRenderableProxy_2 proxy, out UInt64 key)
         {
+            MyCommon.GetObjectCB(sizeof(MyMergeInstancingConstants));
             var material = MyMeshMaterials1.GetProxyId(MyMeshMaterials1.MaterialRkIndex.Get(m_rootMaterialRK, MyMeshMaterialId.NULL));
             proxy = new MyRenderableProxy_2
             {
@@ -198,13 +200,12 @@ namespace VRageRender
 
                 ObjectConstants = new MyConstantsPack { },
 
-                ObjectSRVs = new MySrvTable { StartSlot = MyCommon.INSTANCE_INDIRECTION, SRVs = m_mergeGroup.m_SRVs, BindFlag = MyBindFlag.BIND_VS, Version = this.GetHashCode() },
-                VertexData = new MyVertexDataProxy_2 { },
+                ObjectSrvs = new MySrvTable { StartSlot = MyCommon.INSTANCE_INDIRECTION, Srvs = m_mergeGroup.m_srvs, BindFlag = MyBindFlag.BIND_VS, Version = this.GetHashCode() },
 
-                DepthShaders = GetMergeInstancing(MyGeometryRenderer.DEFAULT_DEPTH_PASS, MyShaderUnifiedFlags.DEPTH_ONLY),
-                HighlightShaders = GetMergeInstancing(MyGeometryRenderer.DEFAULT_HIGHLIGHT_PASS),
-                Shaders = GetMergeInstancing(MyGeometryRenderer.DEFAULT_OPAQUE_PASS),
-                ForwardShaders = GetMergeInstancing(MyGeometryRenderer.DEFAULT_FORWARD_PASS, MyShaderUnifiedFlags.USE_SHADOW_CASCADES),
+                DepthShaders = GetMergeInstancing(MyMaterialShaders.DEPTH_PASS_ID, MyShaderUnifiedFlags.DEPTH_ONLY),
+                HighlightShaders = GetMergeInstancing(MyMaterialShaders.HIGHLIGHT_PASS_ID),
+                Shaders = GetMergeInstancing(MyMaterialShaders.GBUFFER_PASS_ID),
+                ForwardShaders = GetMergeInstancing(MyMaterialShaders.FORWARD_PASS_ID, MyShaderUnifiedFlags.USE_SHADOW_CASCADES),
 
                 RenderFlags = MyRenderableProxyFlags.DepthSkipTextures,
 
@@ -218,15 +219,14 @@ namespace VRageRender
             key = 0;
         }
 
-        private static MyMergeInstancingShaderBundle GetMergeInstancing(string pass, MyShaderUnifiedFlags flags = MyShaderUnifiedFlags.NONE)
+        private static MyMergeInstancingShaderBundle GetMergeInstancing(MyStringId pass, MyShaderUnifiedFlags flags = MyShaderUnifiedFlags.NONE)
         {
             MyMergeInstancingShaderBundle ret = new MyMergeInstancingShaderBundle();
 
             flags |= MyShaderUnifiedFlags.USE_MERGE_INSTANCING;
 
-            var passId = MyStringId.GetOrCompute(pass);
-            ret.MultiInstance = MyMaterialShaders.Get(STANDARD_MATERIAL, passId, MyVertexLayouts.Empty, flags);
-            ret.SingleInstance = MyMaterialShaders.Get(STANDARD_MATERIAL, passId, MyVertexLayouts.Empty, flags | MyShaderUnifiedFlags.USE_SINGLE_INSTANCE);
+            ret.MultiInstance = MyMaterialShaders.Get(STANDARD_MATERIAL, pass, MyVertexLayouts.Empty, flags, MyFileTextureEnum.UNSPECIFIED);
+            ret.SingleInstance = MyMaterialShaders.Get(STANDARD_MATERIAL, pass, MyVertexLayouts.Empty, flags | MyShaderUnifiedFlags.USE_SINGLE_INSTANCE, MyFileTextureEnum.UNSPECIFIED);
             return ret;
         }
 
@@ -372,8 +372,8 @@ namespace VRageRender
 
         internal void PropagateMatrixChange(MyActor child)
         {
-            var matrix = child.m_relativeTransform.HasValue
-                        ? (MatrixD)child.m_relativeTransform.Value * Owner.WorldMatrix
+            var matrix = child.RelativeTransform.HasValue
+                        ? (MatrixD)child.RelativeTransform.Value * Owner.WorldMatrix
                         : Owner.WorldMatrix;
             child.SetMatrix(ref matrix);
         }
@@ -472,19 +472,19 @@ namespace VRageRender
 
             m_children.Add(child);
 
-            if (child.m_relativeTransform == null)
+            if (child.RelativeTransform == null)
             {
-                child.m_relativeTransform = (Matrix)(child.WorldMatrix * MatrixD.Invert(Owner.WorldMatrix));
+                child.RelativeTransform = (Matrix)(child.WorldMatrix * MatrixD.Invert(Owner.WorldMatrix));
             }
 
-            if (!Owner.m_localAabb.HasValue)
+            if (!Owner.LocalAabb.HasValue)
             {
-                Owner.m_localAabb = child.m_localAabb;
+                Owner.LocalAabb = child.LocalAabb;
             }
             else
             {
-                var localAabb = child.m_localAabb.Value;
-                Owner.m_localAabb = Owner.m_localAabb.Value.Include(ref localAabb);
+                var localAabb = child.LocalAabb.Value;
+                Owner.LocalAabb = Owner.LocalAabb.Value.Include(ref localAabb);
             }
 
             PropagateMatrixChange(child);

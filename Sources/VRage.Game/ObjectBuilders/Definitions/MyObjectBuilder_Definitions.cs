@@ -11,7 +11,7 @@ namespace VRage.Game
     [MyObjectBuilderDefinition]
     public class MyObjectBuilder_Definitions : MyObjectBuilder_Base
     {
-        [XmlElement("Definition", Type = typeof(MyAbstractXmlSerializer<MyObjectBuilder_DefinitionBase>))]
+        [XmlElement(MyDefinitionXmlSerializer.DEFINITION_ELEMENT_NAME, Type = typeof(MyDefinitionXmlSerializer))]
         public MyObjectBuilder_DefinitionBase[] Definitions;
 
         [XmlArrayItem("GridCreator")]
@@ -157,6 +157,10 @@ namespace VRage.Game
         [XmlArrayItem("ShipSoundGroup", Type = typeof(MyAbstractXmlSerializer<MyObjectBuilder_ShipSoundsDefinition>))]
         [ProtoMember]
         public MyObjectBuilder_ShipSoundsDefinition[] ShipSoundGroups;
+
+        [ProtoMember]
+        [XmlArrayItem("DroneBehavior", Type = typeof(MyAbstractXmlSerializer<MyObjectBuilder_DroneBehaviorDefinition>))]
+        public MyObjectBuilder_DroneBehaviorDefinition[] DroneBehaviors;
 
         [XmlElement("ShipSoundSystem", Type = typeof(MyAbstractXmlSerializer<MyObjectBuilder_ShipSoundSystemDefinition>))]
         [ProtoMember]
@@ -311,5 +315,9 @@ namespace VRage.Game
         [ProtoMember]
         [XmlArrayItem("ShadowTextureSet")]
         public MyObjectBuilder_ShadowTextureSetDefinition[] ShadowTextureSets;
+
+        [XmlArrayItem("Font", Type = typeof(MyAbstractXmlSerializer<MyObjectBuilder_FontDefinition>))]
+        [ProtoMember]
+        public MyObjectBuilder_FontDefinition[] Fonts;
     }
 }

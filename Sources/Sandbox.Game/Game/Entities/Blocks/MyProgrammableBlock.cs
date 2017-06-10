@@ -177,6 +177,7 @@ public void Main(string argument) {{
 
         bool IMyProgrammableBlock.TryRun(string argument)
         {
+#if !XB1 // XB1_NOILINJECTOR
             // If we find some reason why a run couldn't possibly work, return false
             if (m_instance == null || m_isRunning || this.IsWorking == false || this.IsFunctional == false)
             {
@@ -194,6 +195,10 @@ public void Main(string argument) {{
             if (result == ScriptTerminationReason.InstructionOverflow)
                 throw new ScriptOutOfRangeException();
             return result == ScriptTerminationReason.None;
+#else // XB1
+            System.Diagnostics.Debug.Assert(false, "No scripts on XB1!");
+            return false;
+#endif // XB1
         }
 
         public ulong UserId
@@ -202,13 +207,14 @@ public void Main(string argument) {{
             set { m_userId = value; }
         }
 
-        static void CreateTerminalControls()
+        protected override void CreateTerminalControls()
         {
             if (MyTerminalControlFactory.AreControlsCreated<MyProgrammableBlock>())
                 return;
-
+            base.CreateTerminalControls();
             var console = new MyTerminalControlButton<MyProgrammableBlock>("Edit", MySpaceTexts.TerminalControlPanel_EditCode, MySpaceTexts.TerminalControlPanel_EditCode_Tooltip, (b) => b.SendOpenEditorRequest());
             console.Visible = (b) => MyFakes.ENABLE_PROGRAMMABLE_BLOCK && MySession.Static.EnableIngameScripts;
+            console.Enabled = (b) => MySession.Static.IsScripter;
             MyTerminalControlFactory.AddControl(console);
 
             var arg = new MyTerminalControlTextbox<MyProgrammableBlock>("ConsoleCommand", MySpaceTexts.TerminalControlPanel_RunArgument, MySpaceTexts.TerminalControlPanel_RunArgument_ToolTip);
@@ -221,7 +227,12 @@ public void Main(string argument) {{
             terminalRun.Visible = (b) => MyFakes.ENABLE_PROGRAMMABLE_BLOCK && MySession.Static.EnableIngameScripts;
             terminalRun.Enabled = (b) => b.IsWorking == true && b.IsFunctional == true;
             MyTerminalControlFactory.AddControl(terminalRun);
-            
+
+            var recompile = new MyTerminalControlButton<MyProgrammableBlock>("Recompile", MySpaceTexts.TerminalControlPanel_Recompile, MySpaceTexts.TerminalControlPanel_Recompile_Tooltip, (b) => b.Recompile());
+            recompile.Visible = (b) => MyFakes.ENABLE_PROGRAMMABLE_BLOCK && MySession.Static.EnableIngameScripts;
+            recompile.Enabled = (b) => b.IsWorking == true && b.IsFunctional == true;
+            MyTerminalControlFactory.AddControl(recompile);
+
             var runAction = new MyTerminalAction<MyProgrammableBlock>("Run", MyTexts.Get(MySpaceTexts.TerminalControlPanel_RunCode), OnRunApplied, null, MyTerminalActionIcons.START);
             runAction.Enabled = (b) => b.IsFunctional == true;
             runAction.DoUserParameterRequest = RequestRunArgument;
@@ -432,6 +443,7 @@ public void Main(string argument) {{
 
             m_isRunning = true;
             response = "";
+#if !XB1 // XB1_NOILINJECTOR
             try {
                 using (var handle = IlInjector.BeginRunBlock(MAX_NUM_EXECUTED_INSTRUCTIONS, MAX_NUM_METHOD_CALLS)) {
                     m_runtime.InjectorHandle = handle;
@@ -471,6 +483,10 @@ public void Main(string argument) {{
                 m_runtime.InjectorHandle = null;
                 m_isRunning = false;
             }
+#else // XB1
+            System.Diagnostics.Debug.Assert(false, "No scripts on XB1!");
+            return m_terminationReason;
+#endif // XB1
         }
 
         private void OnProgramTermination(ScriptTerminationReason reason)
@@ -489,6 +505,7 @@ public void Main(string argument) {{
 
         public void Run(string argument)
         {
+            MySimpleProfiler.Begin("Scripts");
             if (this.IsWorking == false || this.IsFunctional == false)
             {
                 return;
@@ -503,6 +520,7 @@ public void Main(string argument) {{
             {
                SendRunProgramRequest(argument);
             }
+            MySimpleProfiler.End("Scripts");
         }
 
         private void SetDetailedInfo(string detailedInfo)
@@ -521,7 +539,7 @@ public void Main(string argument) {{
             sinkComp.Init(
               blockDefinition.ResourceSinkGroup,
               0.0005f,
-              () => (Enabled && IsFunctional) ? ResourceSink.MaxRequiredInput : 0f);
+              () => (Enabled && IsFunctional) ? ResourceSink.MaxRequiredInputByType(MyResourceDistributorComponent.ElectricityId) : 0f);
             sinkComp.IsPoweredChanged += PowerReceiver_IsPoweredChanged;
             ResourceSink = sinkComp;
 
@@ -597,6 +615,7 @@ public void Main(string argument) {{
             {
                 if (MyFakes.ENABLE_ROSLYN_SCRIPTS)
                 {
+#if !XB1
                     m_assembly = MyScriptCompiler.Static.Compile(
                         MyApiTarget.Ingame,
                         Path.Combine(MyFileSystem.UserDataPath, GetAssemblyName()),
@@ -607,6 +626,11 @@ public void Main(string argument) {{
                     m_compilerErrors.AddRange(m_compilerMessages.Select(m => m.Text));
 
                     CreateInstance(m_assembly, m_compilerErrors, storage);
+#else // XB1
+#if !XB1_SKIPASSERTFORNOW
+                    System.Diagnostics.Debug.Assert(false, "No scripts on XB1");
+#endif // !XB1_SKIPASSERTFORNOW
+#endif // XB1
                 }
                 else
                 {
@@ -614,7 +638,12 @@ public void Main(string argument) {{
                     MyGuiScreenEditor.CompileProgram(program, m_compilerErrors, ref temp);
                     if (temp != null)
                     {
+#if !XB1 // XB1_NOILINJECTOR
                         m_assembly = IlInjector.InjectCodeToAssembly("IngameScript_safe", temp, typeof(IlInjector).GetMethod("CountInstructions", BindingFlags.Public | BindingFlags.Static), typeof(IlInjector).GetMethod("CountMethodCalls", BindingFlags.Public | BindingFlags.Static));
+#else // XB1
+                        System.Diagnostics.Debug.Assert(false, "No scripts on XB1");
+                        return;
+#endif // XB1
 
                         CreateInstance(m_assembly, m_compilerErrors, storage);
                     }
@@ -766,7 +795,7 @@ public void Main(string argument) {{
 
         protected override bool CheckIsWorking()
         {
-            return ResourceSink.IsPowered && base.CheckIsWorking();
+            return ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId) && base.CheckIsWorking();
         }
 
         public override void UpdateAfterSimulation()
@@ -894,6 +923,11 @@ public void Main(string argument) {{
         [Event, Reliable, Server,Broadcast]
         void UpdateProgram(byte[] program)
         {
+            if (!MySession.Static.IsUserScripter(MyEventContext.Current.Sender.Value))
+            {
+                MyEventContext.ValidationFailed();
+                return;
+            }
             UpdateProgram(StringCompressor.DecompressString(program));
         }
 
@@ -912,12 +946,15 @@ public void Main(string argument) {{
         {
             double m_lastMainRunTimeMs;
             long m_startTicks;
+#if !XB1 // XB1_NOILINJECTOR
             public IlInjector.ICounterHandle InjectorHandle { get; set; }
+#endif // !XB1
 
             public TimeSpan TimeSinceLastRun { get; private set; }
 
             public double LastRunTimeMs { get; private set; }
 
+#if !XB1 // XB1_NOILINJECTOR
             public int MaxInstructionCount
             {
                 get { return InjectorHandle.MaxInstructionCount; }
@@ -937,6 +974,27 @@ public void Main(string argument) {{
             {
                 get { return InjectorHandle.MethodCallCount; }
             }
+#else // XB1
+            public int MaxInstructionCount
+            {
+                get { System.Diagnostics.Debug.Assert(false, "No scripts on XB1"); return 0; }
+            }
+
+            public int CurrentInstructionCount
+            {
+                get { System.Diagnostics.Debug.Assert(false, "No scripts on XB1"); return 0; }
+            }
+
+            public int MaxMethodCallCount
+            {
+                get { System.Diagnostics.Debug.Assert(false, "No scripts on XB1"); return 0; }
+            }
+
+            public int CurrentMethodCallCount
+            {
+                get { System.Diagnostics.Debug.Assert(false, "No scripts on XB1"); return 0; }
+            }
+#endif // XB1
 
             public void Reset()
             {
@@ -960,7 +1018,7 @@ public void Main(string argument) {{
                     elapsedTimeTicks = (ticks - m_startTicks) * STOPWATCH_TICKS_FREQUENCY;
                     m_startTicks = ticks;
                 }
-                var scaledTicks = (long)(elapsedTimeTicks * Sync.ServerSimulationRatio);
+                var scaledTicks = (long)(elapsedTimeTicks);
                 TimeSinceLastRun = new TimeSpan(scaledTicks);
                 LastRunTimeMs = m_lastMainRunTimeMs;
             }

@@ -14,12 +14,20 @@ using VRage.Game.Components;
 using VRageMath;
 using VRage.Game.Entity;
 using VRage.Game.Models;
+#if XB1 // XB1_SYNC_SERIALIZER_NOEMIT
+using System.Reflection;
+using VRage.Reflection;
+#endif // XB1
 
 namespace Sandbox.Game.World
 {
     public partial class MyPlayer
     {
+#if !XB1 // XB1_SYNC_SERIALIZER_NOEMIT
         public struct PlayerId : IComparable<PlayerId>
+#else // XB1
+        public struct PlayerId : IComparable<PlayerId>, IMySetGetMemberDataHelper
+#endif // XB1
         {
             public ulong SteamId; // Steam Id that identifies the steam account that the controller belongs to
             public int SerialId;  // Serial Id to differentiate between multiple controllers on one computer
@@ -95,6 +103,19 @@ namespace Sandbox.Game.World
                 id.SerialId--;
                 return id;
             }
+
+#if XB1 // XB1_SYNC_SERIALIZER_NOEMIT
+            public object GetMemberData(MemberInfo m)
+            {
+                if (m.Name == "SteamId")
+                    return SteamId;
+                if (m.Name == "SerialId")
+                    return SerialId;
+
+                System.Diagnostics.Debug.Assert(false, "TODO for XB1.");
+                return null;
+            }
+#endif // XB1
         }
 
         private MyNetworkClient m_client;
@@ -160,13 +181,33 @@ namespace Sandbox.Game.World
             }
         }
 
-        public bool IsPromoted
+        public bool IsSpaceMaster
         {
             get
             {
                 if (MySession.Static.OnlineMode == MyOnlineModeEnum.OFFLINE)
                     return true;
-                return MySession.Static.IsUserPromoted( Client.SteamUserId );
+                return MySession.Static.IsUserSpaceMaster( Client.SteamUserId );
+            }
+        }
+
+        public bool IsScripter
+        {
+            get
+            {
+                if (MySession.Static.OnlineMode == MyOnlineModeEnum.OFFLINE)
+                    return true;
+                return MySession.Static.IsUserScripter(Client.SteamUserId);
+            }
+        }
+
+        public bool IsModerator
+        {
+            get
+            {
+                if (MySession.Static.OnlineMode == MyOnlineModeEnum.OFFLINE)
+                    return true;
+                return MySession.Static.IsUserModerator(Client.SteamUserId);
             }
         }
 

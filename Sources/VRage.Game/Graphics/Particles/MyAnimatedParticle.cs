@@ -1,8 +1,9 @@
 ﻿using System;
-using VRage.Animations;
 using VRage.Utils;
 using VRageMath;
 using VRageRender;
+using VRageRender.Animations;
+using VRageRender.Utils;
 
 
 namespace VRage.Game
@@ -13,25 +14,15 @@ namespace VRage.Game
         Line = 1, 
         Trail = 2,
     }
-
-
+    
     public class MyAnimatedParticle
     {
-        [System.Flags]
-        public enum ParticleFlags : byte
-        {
-            BlendTextures = 1 << 0,
-            IsInFrustum =   1 << 1
-        }
-
-        public object Tag;
-
         float m_elapsedTime;  //secs
-        
 
         MyParticleGeneration m_generation;
 
         public MyParticleTypeEnum Type;
+        public MyBillboard.BlenType BlendType;
 
         public MyQuadD Quad = new MyQuadD();
 
@@ -51,7 +42,6 @@ namespace VRage.Game
         public Vector3 Angle; //degrees
         public MyAnimatedPropertyVector3 RotationSpeed; //degrees
         public float Thickness;
-        public ParticleFlags Flags;
         public float ColorIntensity;
         public float SoftParticleDistanceScale;
 
@@ -235,7 +225,7 @@ namespace VRage.Game
         //  Return false if particle dies/timeouts in this tick.
         public bool Draw(VRageRender.MyBillboard billboard)
         {
-            if (Pivot != null)
+            if (Pivot != null && !MyParticlesManager.Paused)
             {
                 if (PivotRotation != null)
                 {
@@ -283,16 +273,13 @@ namespace VRage.Game
                 MyTransparentGeometry.EndParticleProfilingBlock();
             }
 
-            billboard.ContainedBillboards.Clear();
-
-            billboard.Near = m_generation.GetEffect().Near;
-            billboard.Lowres = m_generation.GetEffect().LowRes || VRageRender.MyRenderConstants.RenderQualityProfile.LowResParticles;
             billboard.CustomViewProjection = -1;
             billboard.ParentID = -1;
             billboard.AlphaCutout = actualAlphaCutout;
             billboard.UVOffset = Vector2.Zero;
             billboard.UVSize = Vector2.One;
 
+            billboard.BlendType = BlendType;
 
 
             float alpha = 1;
@@ -513,23 +500,8 @@ namespace VRage.Game
                 }
             }
 
-
             var material1 = MyTransparentMaterials.GetMaterial("ErrorMaterial");
-            var material2 = MyTransparentMaterials.GetMaterial("ErrorMaterial");
-            float textureBlendRatio = 0;
-            if ((Flags & ParticleFlags.BlendTextures) != 0)
-            {
-                float prevTime, nextTime, difference;
-                Material.GetPreviousValue(m_normalizedTime, out material1, out prevTime);
-                Material.GetNextValue(m_normalizedTime, out material2, out nextTime, out difference);
-
-                if (prevTime != nextTime)
-                    textureBlendRatio = (m_normalizedTime - prevTime) * difference;
-            }
-            else
-            {
-                Material.GetInterpolatedValue(m_normalizedTime, out material1);
-            }
+            Material.GetInterpolatedValue(m_normalizedTime, out material1);
 
             MyTransparentGeometry.EndParticleProfilingBlock();
                      
@@ -538,10 +510,6 @@ namespace VRage.Game
 
             if (material1 != null)
                 billboard.Material = material1.Name;
-
-            billboard.BlendMaterial = material2.Name;
-            billboard.BlendTextureRatio = textureBlendRatio;
-            billboard.EnableColorize = false;
 
             billboard.Color = color * alpha * m_generation.GetEffect().UserColorMultiplier;
             billboard.ColorIntensity = ColorIntensity;
@@ -614,21 +582,18 @@ namespace VRage.Game
         private static void GetBillboardQuadRotated(VRageRender.MyBillboard billboard, ref Vector3D position, Vector2 radius, ref Matrix transform, Vector3 left, Vector3 up)
         {
             //	Two main vectors of a billboard rotated around the view axis/vector
-            Vector3D billboardAxisX = new Vector3D();
+            Vector3 billboardAxisX = new Vector3();
             billboardAxisX.X = radius.X * left.X;
             billboardAxisX.Y = radius.X * left.Y;
             billboardAxisX.Z = radius.X * left.Z;
 
-            Vector3D billboardAxisY = new Vector3D();
+            Vector3 billboardAxisY = new Vector3();
             billboardAxisY.X = radius.Y * up.X;
             billboardAxisY.Y = radius.Y * up.Y;
             billboardAxisY.Z = radius.Y * up.Z;
 
-            Vector3 v1 = Vector3.TransformNormal(billboardAxisX + billboardAxisY, transform);
-            Vector3 v2 = Vector3.TransformNormal(billboardAxisX - billboardAxisY, transform);
-
-
-
+            Vector3D v1 = Vector3.TransformNormal(billboardAxisX + billboardAxisY, transform);
+            Vector3D v2 = Vector3.TransformNormal(billboardAxisX - billboardAxisY, transform);
 
             //	Coordinates of four points of a billboard's quad
             billboard.Position0.X = position.X + v1.X;

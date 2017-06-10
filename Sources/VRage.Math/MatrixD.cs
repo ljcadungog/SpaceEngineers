@@ -2600,6 +2600,11 @@ namespace VRageMath
         /// <param name="matrix">Source matrix.</param>
         public static MatrixD Invert(MatrixD matrix)
         {
+            return Invert(ref matrix);
+        }
+
+        public static MatrixD Invert(ref MatrixD matrix)
+        {
             double num1 = matrix.M11;
             double num2 = matrix.M12;
             double num3 = matrix.M13;
@@ -3346,6 +3351,12 @@ namespace VRageMath
             orientation.Up = Up;
             orientation.Right = Right;
             return orientation;
+        }
+
+        [Conditional("DEBUG")]
+        public void AssertIsValid()
+        {
+            Debug.Assert(IsValid());
         }
 
         public bool IsValid()

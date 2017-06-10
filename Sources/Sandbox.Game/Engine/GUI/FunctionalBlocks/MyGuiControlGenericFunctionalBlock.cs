@@ -22,6 +22,7 @@ using VRage.Library.Utils;
 using Sandbox.Game.SessionComponents;
 using Sandbox.Game.Entities.Blocks;
 using VRage.Game;
+using VRage.Profiler;
 
 namespace Sandbox.Graphics.GUI
 {
@@ -118,7 +119,7 @@ namespace Sandbox.Graphics.GUI
                     MyGuiControlButtonStyleEnum.Tiny,
                     new Vector2(0.1f, 0.1f),
                     null, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER, MyTexts.GetString(MyCommonTexts.AddNewNPC), new StringBuilder("+"),
-                    MyGuiConstants.DEFAULT_TEXT_SCALE, MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_CENTER, MyGuiControlHighlightType.WHEN_ACTIVE, true,
+                    MyGuiConstants.DEFAULT_TEXT_SCALE, MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_CENTER, MyGuiControlHighlightType.WHEN_ACTIVE,
                     OnNewNpcClick, GuiSounds.MouseClick, 0.75f);
                 Elements.Add(m_npcButton);
             }
@@ -404,7 +405,7 @@ namespace Sandbox.Graphics.GUI
                  {
                      if (block.IDModule != null)
                      {
-                         if (shareMode >= 0 && (block.OwnerId == MySession.Static.LocalPlayerId))
+                         if (shareMode >= 0 && (block.OwnerId == MySession.Static.LocalPlayerId || MySession.Static.IsUserSpaceMaster(MySession.Static.LocalHumanPlayer.Client.SteamUserId)))
                          {
                              m_requests.Add(new MyCubeGrid.MySingleOwnershipRequest()
                              {
@@ -454,7 +455,7 @@ namespace Sandbox.Graphics.GUI
                                 {
                                     if (block.IDModule != null)
                                     {
-                                        if (block.OwnerId == 0 || block.OwnerId == MySession.Static.LocalPlayerId)
+                                        if (block.OwnerId == 0 || block.OwnerId == MySession.Static.LocalPlayerId || MySession.Static.AdminSettings.HasFlag(AdminSettingsEnum.UseTerminals))
                                         {
                                             m_requests.Add(new MyCubeGrid.MySingleOwnershipRequest()
                                             {
@@ -467,7 +468,7 @@ namespace Sandbox.Graphics.GUI
 
                                 if (m_requests.Count > 0)
                                 {
-                                    if (MySession.Static.Settings.ScenarioEditMode && Sync.Players.IdentityIsNpc(ownerKey)) 
+                                    if (MySession.Static.IsUserSpaceMaster(MySession.Static.LocalHumanPlayer.Client.SteamUserId) && Sync.Players.IdentityIsNpc(ownerKey)) 
                                     {
                                         MyCubeGrid.ChangeOwnersRequest(MyOwnershipShareModeEnum.Faction, m_requests, MySession.Static.LocalPlayerId);
                                     }
@@ -541,7 +542,7 @@ namespace Sandbox.Graphics.GUI
 
             if (!propertyMixed)
             {
-                if (owner.Value == MySession.Static.LocalPlayerId)
+                if (owner.Value == MySession.Static.LocalPlayerId || MySession.Static.AdminSettings.HasFlag(AdminSettingsEnum.UseTerminals))
                 {
                     m_shareModeCombobox.Enabled = true;
                 }
@@ -557,7 +558,7 @@ namespace Sandbox.Graphics.GUI
                 }
                 else
                 {
-                    m_transferToCombobox.Enabled = owner.Value == MySession.Static.LocalPlayerId;
+                    m_transferToCombobox.Enabled = owner.Value == MySession.Static.LocalPlayerId || MySession.Static.AdminSettings.HasFlag(AdminSettingsEnum.UseTerminals);
                     m_ownerLabel.TextEnum = MySpaceTexts.BlockOwner_Me;
                     if (owner.Value != MySession.Static.LocalPlayerId)
                     {

@@ -1,20 +1,11 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using SharpDX;
-using SharpDX.Direct3D;
+﻿using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
-using VRageRender.Resources;
 using Vector2 = VRageMath.Vector2;
-using Color = VRageMath.Color;
-using Matrix = VRageMath.Matrix;
 using VRageRender.Vertex;
-using VRageMath.PackedVector;
-using VRage;
-using VRage.Utils;
-using System.Diagnostics;
-using System;
 using VRage.OpenVRWrapper;
+using VRage.Render11.Common;
+using VRage.Render11.RenderContext;
+using VRage.Render11.Resources;
 
 namespace VRageRender
 {
@@ -22,7 +13,7 @@ namespace VRageRender
     class MyStereoStencilMask : MyImmediateRC
     {
         static Vector2[] m_VBdata;
-        static VertexBufferId m_VB = VertexBufferId.NULL;
+        static IVertexBuffer m_VB;
 
         static VertexShaderId m_vs;
         static PixelShaderId m_ps;
@@ -30,18 +21,20 @@ namespace VRageRender
 
         private static void InitInternal(Vector2[] vertsForMask)
         {
-            m_VB = MyHwBuffers.CreateVertexBuffer(vertsForMask.Length, MyVertexFormat2DPosition.STRIDE, BindFlags.VertexBuffer, ResourceUsage.Dynamic, null, "MyStereoStencilMask.VB");
-            MyMapping mapping = MyMapping.MapDiscard(RC.DeviceContext, m_VB.Buffer);
-            mapping.WriteAndPosition(vertsForMask, 0, vertsForMask.Length);
+            m_VB = MyManagers.Buffers.CreateVertexBuffer(
+                "MyStereoStencilMask.VB", vertsForMask.Length, MyVertexFormat2DPosition.STRIDE, 
+                usage: ResourceUsage.Dynamic);
+            MyMapping mapping = MyMapping.MapDiscard(RC, m_VB);
+            mapping.WriteAndPosition(vertsForMask, vertsForMask.Length);
             mapping.Unmap();
 
-            m_vs = MyShaders.CreateVs("stereo_stencil_mask.hlsl");
-            m_ps = MyShaders.CreatePs("stereo_stencil_mask.hlsl");
+            m_vs = MyShaders.CreateVs("Stereo/StereoStencilMask.hlsl");
+            m_ps = MyShaders.CreatePs("Stereo/StereoStencilMask.hlsl");
 
             m_il = MyShaders.CreateIL(m_vs.BytecodeId, MyVertexLayouts.GetLayout(MyVertexInputComponentType.POSITION2));
         }
 
-        static Vector2[] m_tmpInitUndefinedMaskVerts = new Vector2 [6];
+        static readonly Vector2[] m_tmpInitUndefinedMaskVerts = new Vector2 [6];
         private static Vector2[] GetUndefinedMask()
         {
             // this offset represents percent of the screen, that are not displayed in the OpenVR
@@ -77,19 +70,19 @@ namespace VRageRender
         
         internal static void Draw()
         {
-            RC.BindGBufferForWrite(MyGBuffer.Main, DepthStencilAccess.ReadWrite);
-            RC.SetupScreenViewport();
-            RC.DeviceContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            RC.SetVB(0, m_VB.Buffer, m_VB.Stride);
-            RC.SetIL(m_il);
+            RC.SetRtvs(MyGBuffer.Main, MyDepthStencilAccess.ReadWrite);
+            RC.SetScreenViewport();
+            RC.SetPrimitiveTopology(PrimitiveTopology.TriangleList);
+            RC.SetVertexBuffer(0, m_VB);
+            RC.SetInputLayout(m_il);
 
-            RC.SetRS(MyRender11.m_nocullRasterizerState);
-            RC.SetDS(MyDepthStencilState.StereoStereoStencilMask, MyDepthStencilState.GetStereoMask());
+            RC.SetRasterizerState(MyRasterizerStateManager.NocullRasterizerState);
+            RC.SetDepthStencilState(MyDepthStencilStateManager.StereoStencilMask, MyDepthStencilStateManager.GetStereoMask());
 
-            RC.SetVS(m_vs);
-            RC.SetPS(m_ps);
+            RC.VertexShader.Set(m_vs);
+            RC.PixelShader.Set(m_ps);
 
-            RC.DeviceContext.Draw(m_VBdata.Length, 0);
+            RC.Draw(m_VBdata.Length, 0);
         }
     }
 }

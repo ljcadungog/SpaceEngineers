@@ -17,9 +17,21 @@ namespace VRage.Utils
         public static void Merge<T>(T self, T source, T other)
             where T : class
         {
-            Debug.Assert(self != null, "Self must be non null");
-            Debug.Assert(source != null, "Source must be non null");
-            Debug.Assert(other != null, "Ohter must be non null");
+            if (self == null)
+            {
+                Debug.Fail("Self must be non null");
+                MyLog.Default.WriteLine("self cannot be null!!! type: " + typeof(T));
+            }
+            if (source == null)
+            {
+                Debug.Fail("Source must be non null");
+                MyLog.Default.WriteLine("Source cannot be null!!! type: " + typeof(T));
+            }
+            if (other == null)
+            {
+                Debug.Fail("Other must be non null");
+                MyLog.Default.WriteLine("Other cannot be null!!! type: " + typeof(T));
+            }
 
             object self_ = self;
             object source_ = source;
@@ -40,6 +52,12 @@ namespace VRage.Utils
 
         private static void MergeInternal(Type type, ref object self, ref object source, ref object other)
         {
+            if (type == null)
+            {
+                MyLog.Default.WriteLine("type cannot be null!!! self: " + self + " source: " + source + " other: " + other);
+                Debug.Fail("type cannot be null!!!");
+            }
+
             if (self == null)
                 self = Activator.CreateInstance(type);
 
@@ -50,19 +68,27 @@ namespace VRage.Utils
             {
                 object valueSource = field.GetValue(source);
                 object valueOther = field.GetValue(other);
-                if (valueSource == valueOther)
+                if (valueSource == valueOther) // Ref check only
                     continue;
 
-                if (IsPrimitive(field.FieldType) && !valueSource.Equals(valueOther)
+                if (valueSource == null)
+                {
+                    MyLog.Default.WriteLine("ERROR: Error detected related to the following resource: " + valueOther + " Please check your definition files and reload");
+                    MyLog.Default.WriteLine("More info MergeInternal: field: " + field + " source: " + source + " , other: " + other + " , valueOther: " + valueOther);
+                    Debug.Fail("ERROR: Error detected related to the following resource: " + valueOther + " Please check your definition files and reload");
+                    Debug.Fail("More info MergeInternal: field: " + field + " source: " + source + " , other: " + other + " , valueOther: " + valueOther);
+                    continue;
+                }
+
+                bool equals = false;
+                if (IsPrimitive(field.FieldType) && !(equals = valueSource.Equals(valueOther))
                     || valueSource != null && valueOther == null)
                 {
                     field.SetValue(self, valueSource);
                 }
-                else // valueOther != null
+                else if (!equals)// valueOther != null
                 {
-                    object valueSelf = null;
-                    if (!field.FieldType.IsValueType)
-                        valueSelf = field.GetValue(self);
+                    object valueSelf = field.GetValue(self);
 
                     MergeInternal(field.FieldType, ref valueSelf, ref valueSource, ref valueOther);
                     field.SetValue(self, valueSelf);
@@ -72,7 +98,7 @@ namespace VRage.Utils
 
         private static bool IsPrimitive(Type type)
         {
-            return type.IsPrimitive || type == typeof(String);
+            return type.IsPrimitive || type == typeof(String) || type == typeof(Type);
         }
     }
 }

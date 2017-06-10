@@ -13,8 +13,10 @@ using VRage;
 using VRage.Game;
 using VRage.Game.Entity;
 using VRage.Game.Gui;
+using VRage.Profiler;
 using VRage.Utils;
 using VRageMath;
+using VRageRender;
 
 namespace Sandbox.Game.GUI.HudViewers
 {
@@ -25,14 +27,14 @@ namespace Sandbox.Game.GUI.HudViewers
 
         public class MyMarkerStyle
         {
-            public MyFontEnum Font { get; set; }
+            public string Font { get; set; }
             public MyHudTexturesEnum TextureDirectionIndicator { get; set; }
             public MyHudTexturesEnum TextureTarget { get; set; }
             public Color Color { get; set; }
             public float TextureTargetRotationSpeed { get; set; }
             public float TextureTargetScale { get; set; }
 
-            public MyMarkerStyle(MyFontEnum font, MyHudTexturesEnum textureDirectionIndicator, MyHudTexturesEnum textureTarget, Color color, float textureTargetRotationSpeed = 0f, float textureTargetScale = 1f)
+            public MyMarkerStyle(string font, MyHudTexturesEnum textureDirectionIndicator, MyHudTexturesEnum textureTarget, Color color, float textureTargetRotationSpeed = 0f, float textureTargetScale = 1f)
             {
                 Font = font;
                 TextureDirectionIndicator = textureDirectionIndicator;
@@ -85,14 +87,14 @@ namespace Sandbox.Game.GUI.HudViewers
         {
         }
 
-        public int AllocateMarkerStyle(MyFontEnum font, MyHudTexturesEnum directionIcon, MyHudTexturesEnum targetIcon, Color color)
+        public int AllocateMarkerStyle(string font, MyHudTexturesEnum directionIcon, MyHudTexturesEnum targetIcon, Color color)
         {
             int newHandle = m_markerStyles.Count;
             m_markerStyles.Add(new MyMarkerStyle(font, directionIcon, targetIcon, color));
             return newHandle;
         }
 
-        public void OverrideStyleForRelation(VRage.Game.MyRelationsBetweenPlayerAndBlock relation, MyFontEnum font, MyHudTexturesEnum directionIcon, MyHudTexturesEnum targetIcon, Color color)
+        public void OverrideStyleForRelation(VRage.Game.MyRelationsBetweenPlayerAndBlock relation, string font, MyHudTexturesEnum directionIcon, MyHudTexturesEnum targetIcon, Color color)
         {
             int handle = GetStyleForRelation(relation);
             m_markerStyles[handle] = new MyMarkerStyle(font, directionIcon, targetIcon, color);
@@ -346,7 +348,7 @@ namespace Sandbox.Game.GUI.HudViewers
             Rectangle? source = null;
 
             VRageRender.MyRenderProxy.DrawSprite(texture, ref dest, false, ref source, color, 0,
-                new Vector2(1, 0), ref Vector2.Zero, VRageRender.Graphics.SpriteEffects.None, 0);
+                new Vector2(1, 0), ref Vector2.Zero, SpriteEffects.None, 0);
         }
     }
 }

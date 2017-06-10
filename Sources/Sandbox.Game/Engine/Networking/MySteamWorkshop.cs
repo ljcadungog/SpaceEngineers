@@ -24,6 +24,7 @@ using VRage.Game;
 using VRage.ObjectBuilders;
 using VRage;
 
+#if !XB1 // XB1_NOWORKSHOP
 namespace Sandbox.Engine.Networking
 {
     public class MySteamWorkshop
@@ -113,6 +114,7 @@ namespace Sandbox.Engine.Networking
         /// </summary>
         public const string WORKSHOP_DEVELOPMENT_TAG = "development";
         public const string WORKSHOP_WORLD_TAG = "world";
+        public const string WORKSHOP_CAMPAIGN_TAG = "campaign";
         public const string WORKSHOP_MOD_TAG = "mod";
         public const string WORKSHOP_BLUEPRINT_TAG = "blueprint";
         public const string WORKSHOP_SCENARIO_TAG = "scenario";
@@ -531,6 +533,22 @@ namespace Sandbox.Engine.Networking
             try
             {
                 return GetSubscribedItemsBlocking(results, WORKSHOP_WORLD_TAG);
+            }
+            finally
+            {
+                MySandboxGame.Log.WriteLine("MySteamWorkshop.GetSubscribedWorldsBlocking - END");
+            }
+        }
+
+        /// <summary>
+        /// Do NOT call this method from update thread.
+        /// </summary>
+        public static bool GetSubscribedCampaignsBlocking(List<SubscribedItem> results)
+        {
+            MySandboxGame.Log.WriteLine("MySteamWorkshop.GetSubscribedWorldsBlocking - START");
+            try
+            {
+                return GetSubscribedItemsBlocking(results, WORKSHOP_CAMPAIGN_TAG);
             }
             finally
             {
@@ -1771,7 +1789,7 @@ namespace Sandbox.Engine.Networking
             // make sure we don't overwrite another save
             while (Directory.Exists(sessionPath))
                 sessionPath = Path.Combine(workshopBattleWorldsPath, safeName + MyUtils.GetRandomInt(int.MaxValue).ToString("########"));
-#if XB1_TMP
+#if XB1
 			System.Diagnostics.Debug.Assert(false);
 #else
             MyZipArchive.ExtractToDirectory(localPackedWorldFullPath, sessionPath);
@@ -1860,3 +1878,31 @@ namespace Sandbox.Engine.Networking
         }
     }
 }
+#else // XB1
+namespace Sandbox.Engine.Networking
+{
+    public class MySteamWorkshop
+    {
+        public static void DownloadModsAsync(List<MyObjectBuilder_Checkpoint.ModItem> mods, Action<bool,string> onFinishedCallback, Action onCancelledCallback = null)
+        {
+            onFinishedCallback(true,"");
+            return;
+        }
+
+        public static bool DownloadWorldModsBlocking(List<MyObjectBuilder_Checkpoint.ModItem> mods)
+        {
+            return true;
+        }
+
+        public static bool CheckLocalModsAllowed(List<MyObjectBuilder_Checkpoint.ModItem> mods, bool allowLocalMods)
+        {
+            return true;
+        }
+
+        public static bool CanRunOffline(List<MyObjectBuilder_Checkpoint.ModItem> mods)
+        {
+            return true;
+        }
+    }
+}
+#endif // XB1

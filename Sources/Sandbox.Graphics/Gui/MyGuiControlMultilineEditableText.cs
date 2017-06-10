@@ -34,15 +34,17 @@ namespace Sandbox.Graphics.GUI
             Vector2? position = null,
             Vector2? size = null,
             Vector4? backgroundColor = null,
-            MyFontEnum font = MyFontEnum.Blue,
+            string font = MyFontEnum.Blue,
             float textScale = MyGuiConstants.DEFAULT_TEXT_SCALE,
             MyGuiDrawAlignEnum textAlign = MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP,
             StringBuilder contents = null,
             bool drawScrollbar = true,
             MyGuiDrawAlignEnum textBoxAlign = MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_CENTER,
-            int? visibleLinesCount = null
+            int? visibleLinesCount = null,
+            MyGuiCompositeTexture backgroundTexture = null,
+            MyGuiBorderThickness? textPadding = null
         )
-            : base(position, size, backgroundColor, font, textScale, textAlign, contents, drawScrollbar, textBoxAlign, visibleLinesCount, true)
+            : base(position, size, backgroundColor, font, textScale, textAlign, contents, drawScrollbar, textBoxAlign, visibleLinesCount, true, backgroundTexture: backgroundTexture, textPadding: textPadding)
         {
             m_fontHeight = MyGuiManager.GetFontHeight(Font, TextScaleWithLanguage);
             this.AllowFocusingElements = false;

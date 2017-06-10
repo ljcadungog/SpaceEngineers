@@ -1,15 +1,11 @@
-﻿using Sandbox.Engine.Utils;
-using Sandbox.Engine.Voxels;
-using Sandbox.Game.Entities;
-using Sandbox.ModAPI;
+﻿using Sandbox.Engine.Voxels;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using VRage;
-using VRage.Game.Components;
+using VRage.Profiler;
 using VRage.Voxels;
 using VRageMath;
 using VRageRender;
+using VRageRender.Messages;
 
 namespace Sandbox.Game.Components
 {
@@ -18,7 +14,6 @@ namespace Sandbox.Game.Components
         private IMyVoxelDrawable m_voxelMap = null;
 
         private readonly MyWorkTracker<UInt64, MyPrecalcJobRender> m_renderWorkTracker = new MyWorkTracker<UInt64, MyPrecalcJobRender>();
-        private readonly MyWorkTracker<UInt64, MyPrecalcJobMerge> m_mergeWorkTracker = new MyWorkTracker<ulong, MyPrecalcJobMerge>(); 
 
         public uint ClipmapId
         {
@@ -85,7 +80,6 @@ namespace Sandbox.Game.Components
                 maxCellLod0 == ((m_voxelMap.Storage.Size - 1) >> MyVoxelCoordSystems.RenderCellSizeInLodVoxelsShift(0)))
             {
                 m_renderWorkTracker.InvalidateAll();
-                m_mergeWorkTracker.InvalidateAll();
             }
             else
             {
@@ -98,7 +92,6 @@ namespace Sandbox.Game.Components
                         it.IsValid(); it.GetNext(out cellCoord.CoordInLod))
                     {
                         m_renderWorkTracker.Invalidate(cellCoord.PackId64());
-                        m_mergeWorkTracker.Invalidate(cellCoord.PackId64());
                     }
                 }
             }
@@ -110,32 +103,6 @@ namespace Sandbox.Game.Components
                 Vector3I.Zero,
                 (m_voxelMap.Storage.Size -1) >> MyVoxelCoordSystems.RenderCellSizeInLodVoxelsShift(0));
             m_renderWorkTracker.InvalidateAll();
-            m_mergeWorkTracker.InvalidateAll();
-        }
-
-        internal void OnMeshMergeRequest(
-            uint clipmapId,
-            List<MyClipmapCellMeshMetadata> lodMeshMetadata,
-            MyCellCoord cellCoord,
-            Func<int> priorityFunction,
-            ulong workId,
-            List<MyClipmapCellBatch> batches)
-        {
-            MyPrecalcJobMerge.Start(new MyPrecalcJobMerge.Args
-            {
-                InBatches = new List<MyClipmapCellBatch>(batches),
-                ClipmapId = clipmapId,
-                WorkId = workId,
-                Cell = cellCoord,
-                LodMeshMetadata = new List<MyClipmapCellMeshMetadata>(lodMeshMetadata),
-                Priority = priorityFunction,
-                RenderWorkTracker = m_mergeWorkTracker,
-            });
-        }
-
-        internal void OnMeshMergeCancelled(uint clipmapId, ulong workId)
-        {
-            m_mergeWorkTracker.Cancel(workId);
         }
 
         internal void OnCellRequest(MyCellCoord cell, Func<int> priorityFunction, Action<Color> debugDraw)

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using VRage.Game.Entity;
@@ -15,6 +16,7 @@ using VRage.ModAPI;
 using VRage.Utils;
 using VRageMath;
 using VRageRender;
+using VRageRender.Messages;
 
 namespace Sandbox.Game
 {
@@ -22,6 +24,7 @@ namespace Sandbox.Game
     {
         private const string DEFAULT = "Default";
 
+        private static MyCubeGridHitInfo m_gridHitInfo = new MyCubeGridHitInfo();
         private static MyDecals m_handler = new MyDecals();
         private static Func<IMyDecalProxy, bool> FilterProxy = DefaultFilterProxy;
 
@@ -31,46 +34,67 @@ namespace Sandbox.Game
         private MyDecals() { }
 
         /// <param name="damage">Not used for now but could be used as a multiplier instead of random decal size</param>
-        public static void HandleAddDecal(IMyEntity entity, MyHitInfo hitInfo, MyStringHash source = default(MyStringHash), object customdata = null, float damage = -1)
+        public static void HandleAddDecal(IMyEntity entity, MyHitInfo hitInfo, MyStringHash material = default(MyStringHash), MyStringHash source = default(MyStringHash), object customdata = null, float damage = -1)
         {
             IMyDecalProxy proxy = entity as IMyDecalProxy;
             if (proxy != null)
             {
-                AddDecal(proxy, ref hitInfo, damage, source, customdata);
+                AddDecal(proxy, ref hitInfo, damage, source, customdata, material);
                 return;
             }
 
             MyCubeGrid grid = entity as MyCubeGrid;
             if (grid != null)
             {
-                var block = grid.GetTargetedBlock(hitInfo.Position);
-                if (block != null)
+                MyCubeGridHitInfo info = customdata as MyCubeGridHitInfo;
+                MySlimBlock block;
+                if (info == null)
                 {
-                    var compoundBlock = block.FatBlock as MyCompoundCubeBlock;
-                    if (compoundBlock == null)
-                        proxy = block;
-                    else
-                        proxy = compoundBlock;
+                    block = grid.GetTargetedBlock(hitInfo.Position);
+                    if (block == null)
+                        return;
+
+                    // If info is not provided, provide info with just block position
+                    m_gridHitInfo.Position = block.Position;
+                    customdata = m_gridHitInfo;
                 }
+                else
+                {
+                    // If info is provided, lookup for the cube using provided position
+                    MyCube cube;
+                    bool found = grid.TryGetCube(info.Position, out cube);
+                    if (!found)
+                        return;
+
+                    block = cube.CubeBlock;
+                }
+
+                var compoundBlock = block != null ? block.FatBlock as MyCompoundCubeBlock : null;
+                if (compoundBlock == null)
+                    proxy = block;
+                else
+                    proxy = compoundBlock;
             }
 
             if (proxy == null)
                 return;
 
-            AddDecal(proxy, ref hitInfo, damage, source, customdata);
+            AddDecal(proxy, ref hitInfo, damage, source, customdata, material);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void UpdateDecals(List<MyDecalPositionUpdate> decals)
         {
             MyRenderProxy.UpdateDecals(decals);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RemoveDecal(uint decalId)
         {
             MyRenderProxy.RemoveDecal(decalId);
         }
 
-        private static void AddDecal(IMyDecalProxy proxy, ref MyHitInfo hitInfo, float damage, MyStringHash source, object customdata)
+        private static void AddDecal(IMyDecalProxy proxy, ref MyHitInfo hitInfo, float damage, MyStringHash source, object customdata, MyStringHash material)
         {
             bool skip = DefaultFilterProxy(proxy);
             if (skip)
@@ -78,7 +102,7 @@ namespace Sandbox.Game
 
             m_handler.Source = source;
             m_handler.Enabled = true;
-            proxy.AddDecals(hitInfo, source, customdata, m_handler);
+            proxy.AddDecals(hitInfo, source, customdata, m_handler, material);
             m_handler.Enabled = false;
             m_handler.Source = MyStringHash.NullOrEmpty;
         }
@@ -98,6 +122,19 @@ namespace Sandbox.Game
                     return null;
             }
 
+            MyDecalBindingInfo binding;
+            if (data.Binding == null)
+            {
+                binding = new MyDecalBindingInfo();
+                binding.Position = data.Position;
+                binding.Normal = data.Normal;
+                binding.Transformation = Matrix.Identity;
+            }
+            else
+            {
+                binding = data.Binding.Value;
+            }
+
             int index = (int)Math.Round(MyRandom.Instance.NextFloat() * (materials.Count - 1));
             MyDecalMaterial material = materials[index];
 
@@ -105,18 +142,46 @@ namespace Sandbox.Game
             if (material.Rotation == float.PositiveInfinity)
                 rotation = MyRandom.Instance.NextFloat() * MathHelper.TwoPi;
 
+            var bindingPerp = Vector3.CalculatePerpendicularVector(binding.Normal);
+            if (rotation != 0)
+            {
+                // Rotate around normal
+                Quaternion q = Quaternion.CreateFromAxisAngle(binding.Normal, rotation);
+                bindingPerp = new Vector3((new Quaternion(bindingPerp, 0) * q).ToVector4());
+            }
+            bindingPerp = Vector3.Normalize(bindingPerp);
+
             var size = material.MinSize;
             if (material.MaxSize > material.MinSize)
                 size += MyRandom.Instance.NextFloat() * (material.MaxSize - material.MinSize);
 
+            Vector3 scale = new Vector3(size, size, material.Depth);
             MyDecalTopoData topoData = new MyDecalTopoData();
-            topoData.Position = data.Position;
-            topoData.Normal = data.Normal;
-            topoData.Scale = new Vector3(size, size, material.Depth);
-            topoData.Rotation = rotation;
+
+            Matrix pos;
+            Vector3 worldPosition;
+            if (data.Flags.HasFlag(MyDecalFlags.World))
+            {
+                // Using tre translation component here would loose accuracy
+                pos = Matrix.CreateWorld(Vector3.Zero, binding.Normal, bindingPerp);
+                worldPosition = data.Position;
+            }
+            else
+            {
+                pos = Matrix.CreateWorld(binding.Position, binding.Normal, bindingPerp);
+                worldPosition = Vector3.Invalid; // Set in the render thread
+            }
+
+            topoData.MatrixBinding = Matrix.CreateScale(scale) * pos;
+            topoData.WorldPosition = worldPosition;
+            topoData.MatrixCurrent = binding.Transformation * topoData.MatrixBinding;
+            topoData.BoneIndices = data.BoneIndices;
+            topoData.BoneWeights = data.BoneWeights;
+
+            MyDecalFlags flags = material.Transparent ? MyDecalFlags.Transparent : MyDecalFlags.None;
 
             string sourceTarget = MyDecalMaterials.GetStringId(Source, data.Material);
-            return MyRenderProxy.CreateDecal(data.RenderObjectId, ref topoData, data.Flags, sourceTarget, material.StringId, index);
+            return MyRenderProxy.CreateDecal(data.RenderObjectId, ref topoData, data.Flags | flags, sourceTarget, material.StringId, index);
         }
 
         [Conditional("DEBUG")]

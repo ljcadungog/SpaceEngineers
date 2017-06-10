@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+#if !XB1
 using System.Text.RegularExpressions;
+#endif // !XB1
 using System.Threading;
 #if !XB1
 using System.Windows.Forms;
@@ -23,6 +25,7 @@ namespace Sandbox.Graphics.GUI
     {
         #region Fields
 
+        private MyGuiBorderThickness m_textPadding;
         private float m_textScale;
         private float m_textScaleWithLanguage;
         private static readonly StringBuilder m_letterA = new StringBuilder("A");
@@ -98,7 +101,7 @@ namespace Sandbox.Graphics.GUI
 
         public event LinkClicked OnLinkClicked;
 
-        public MyFontEnum Font
+        public string Font
         {
             get { return m_font; }
             set
@@ -110,7 +113,7 @@ namespace Sandbox.Graphics.GUI
                 }
             }
         }
-        private MyFontEnum m_font;
+        private string m_font;
 
         /// <summary>
         /// Gets or sets the color of the text.
@@ -120,6 +123,11 @@ namespace Sandbox.Graphics.GUI
         public Vector2 TextSize
         {
             get { return m_label.Size; }
+        }
+
+        public int NumberOfRows
+        {
+            get { return m_label.NumberOfRows; }
         }
 
         public float ScrollbarOffset
@@ -143,7 +151,7 @@ namespace Sandbox.Graphics.GUI
             Vector2? position = null,
             Vector2? size = null,
             Vector4? backgroundColor = null,
-            MyFontEnum font = MyFontEnum.Blue,
+            string font = MyFontEnum.Blue,
             float textScale = MyGuiConstants.DEFAULT_TEXT_SCALE,
             MyGuiDrawAlignEnum textAlign = MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP,
             StringBuilder contents = null,
@@ -151,12 +159,15 @@ namespace Sandbox.Graphics.GUI
             MyGuiDrawAlignEnum textBoxAlign = MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_CENTER,
             int? visibleLinesCount = null,
             bool selectable = false,
-            bool showTextShadow = false
+            bool showTextShadow = false,
+            MyGuiCompositeTexture backgroundTexture = null,
+            MyGuiBorderThickness? textPadding = null
         )
             : base(position: position,
                     size: size,
                     colorMask: backgroundColor,
-                    toolTip: null)
+                    toolTip: null,
+                    backgroundTexture: backgroundTexture)
         {
             Font = font;
             TextScale = textScale;
@@ -165,6 +176,7 @@ namespace Sandbox.Graphics.GUI
             TextBoxAlign = textBoxAlign;
             m_selectable = selectable;
 
+            m_textPadding = textPadding ?? new MyGuiBorderThickness(0, 0, 0, 0);
             m_scrollbar = new MyVScrollbar(this);
             m_scrollbarSize = new Vector2(0.0334f, MyGuiConstants.COMBOBOX_VSCROLLBAR_SIZE.Y);
             m_scrollbarSize = MyGuiConstants.COMBOBOX_VSCROLLBAR_SIZE;
@@ -244,7 +256,7 @@ namespace Sandbox.Graphics.GUI
             AppendText(text, Font, TextScaleWithLanguage, TextColor.ToVector4());
         }
 
-        public void AppendText(StringBuilder text, MyFontEnum font, float scale, Vector4 color)
+        public void AppendText(StringBuilder text, string font, float scale, Vector4 color)
         {
             m_label.Append(text, font, scale, color);
             RecalculateScrollBar();
@@ -255,7 +267,7 @@ namespace Sandbox.Graphics.GUI
             AppendText(text, Font, TextScaleWithLanguage, TextColor.ToVector4());
         }
 
-        public void AppendText(string text, MyFontEnum font, float scale, Vector4 color)
+        public void AppendText(string text, string font, float scale, Vector4 color)
         {
             m_label.Append(text, font, scale, color);
             RecalculateScrollBar();
@@ -288,6 +300,7 @@ namespace Sandbox.Graphics.GUI
         public void Clear()
         {
             m_label.Clear();
+            m_scrollbar.SetPage(0);
             RecalculateScrollBar();
         }
 
@@ -340,12 +353,12 @@ namespace Sandbox.Graphics.GUI
         public override void Draw(float transitionAlpha, float backgroundTransitionAlpha)
         {
             base.Draw(transitionAlpha, backgroundTransitionAlpha);
-            var textArea = new MyRectangle2D(Vector2.Zero, Size);
-            textArea.LeftTop += GetPositionAbsoluteTopLeft();
+            var textArea = new MyRectangle2D(m_textPadding.TopLeftOffset, Size - m_textPadding.SizeChange);
+            textArea.LeftTop += GetPositionAbsoluteTopLeft() + m_textPadding.TopLeftOffset;
             Vector2 carriageOffset = GetCarriageOffset(CarriagePositionIndex);
 
             var scissor = new RectangleF(textArea.LeftTop, textArea.Size);
-            
+
             // Adjust the scissor a little bit, because currently it's hiding the carriage at its left side, and it's
             // too far out on the edges.
             scissor.X -= 0.001f;
@@ -578,8 +591,8 @@ namespace Sandbox.Graphics.GUI
         /// <param name="offset">Indicates how low is the scrollbar (and how many beginning lines are skipped)</param>
         private void DrawText(float offset)
         {
-            Vector2 position = GetPositionAbsoluteTopLeft();
-            Vector2 drawSizeMax = Size;
+            Vector2 position = GetPositionAbsoluteTopLeft() + m_textPadding.TopLeftOffset;
+            Vector2 drawSizeMax = Size - m_textPadding.SizeChange;
             if (m_drawScrollbar && m_scrollbar.Visible)
                 drawSizeMax.X -= m_scrollbar.Size.X;
 
@@ -727,7 +740,7 @@ namespace Sandbox.Graphics.GUI
 
         protected virtual Vector2 GetCarriageOffset(int idx)
         {
-            Vector2 output = new Vector2(0, -m_scrollbar.Value);
+            Vector2 output = new Vector2(0, -m_scrollbar.Value) + m_textPadding.TopLeftOffset;
             int start = GetLineStartIndex(idx);
             if (idx - start > 0)
             {
@@ -893,6 +906,7 @@ namespace Sandbox.Graphics.GUI
 
             public void CopyText(MyGuiControlMultilineText sender)
             {
+#if !XB1
                 ClipboardText = Regex.Replace(sender.Text.ToString().Substring(Start, Length), "\n", "\r\n");
 
                 if (!string.IsNullOrEmpty(ClipboardText))
@@ -902,6 +916,9 @@ namespace Sandbox.Graphics.GUI
                     thread.Start();
                     thread.Join();
                 }
+#else
+                Debug.Assert(false, "Clipboard not supported on XB1.");
+#endif
             }
 
             public void CutText(MyGuiControlMultilineText sender)
@@ -928,7 +945,11 @@ namespace Sandbox.Graphics.GUI
                 //We have to wait for the thread to end to make sure we got the text
                 myth.Join();
 
+#if !XB1
                 sender.Text = new StringBuilder(prefix).Append(Regex.Replace(ClipboardText, "\r\n", " \n")).Append(suffix);
+#else
+                sender.Text = new StringBuilder(prefix).Append( ClipboardText.Replace("\r\n", " \n") ).Append(suffix);
+#endif
                 sender.CarriagePositionIndex = prefix.Length + ClipboardText.Length;
                 Reset(sender);
             }
@@ -940,14 +961,14 @@ namespace Sandbox.Graphics.GUI
 #else
                 Debug.Assert(false, "Not Clipboard support on XB1!");
 #endif
-                
+
             }
 
             void CopyToClipboard()
             {
 #if !XB1
                 if (ClipboardText != "")
-                    Clipboard.SetText(ClipboardText);          
+                    Clipboard.SetText(ClipboardText);
 #else
                 Debug.Assert(false, "Not Clipboard support on XB1!");
 #endif

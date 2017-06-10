@@ -18,8 +18,8 @@ using Sandbox.Graphics;
 
 namespace Sandbox.Game.Gui
 {
-#if !XB1_TMP
-    [MyDebugScreen("Game", "System")]
+#if !XB1
+    [MyDebugScreen("VRage", "System")]
     class MyGuiScreenDebugSystem : MyGuiScreenDebugBase
     {
         private MyGuiControlMultilineText m_havokStatsMultiline;

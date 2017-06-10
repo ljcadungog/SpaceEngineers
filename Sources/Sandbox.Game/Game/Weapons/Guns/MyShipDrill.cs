@@ -25,6 +25,7 @@ using VRage.Game.Entity;
 using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Interfaces;
 using VRage.ModAPI;
+using VRage.Sync;
 using VRage.Utils;
 using VRageMath;
 
@@ -88,6 +89,9 @@ namespace Sandbox.Game.Weapons
 
         public MyShipDrill()
         {
+#if XB1 // XB1_SYNC_NOREFLECTION
+            m_useConveyorSystem = SyncType.CreateAndAddProp<bool>();
+#endif // XB1
             CreateTerminalControls();
 
             NeedsUpdate |= MyEntityUpdateEnum.EACH_FRAME | MyEntityUpdateEnum.EACH_100TH_FRAME;
@@ -95,11 +99,11 @@ namespace Sandbox.Game.Weapons
             SetupDrillFrameCountdown();
         }
 
-        static void CreateTerminalControls()
+        protected override void CreateTerminalControls()
         {
             if (MyTerminalControlFactory.AreControlsCreated<MyShipDrill>())
                 return;
-
+            base.CreateTerminalControls();
             var useConvSystem = new MyTerminalControlOnOffSwitch<MyShipDrill>("UseConveyor", MySpaceTexts.Terminal_UseConveyorSystem);
             useConvSystem.Getter = (x) => (x).UseConveyorSystem;
             useConvSystem.Setter = (x, v) => (x).UseConveyorSystem = v;
@@ -124,7 +128,7 @@ namespace Sandbox.Game.Weapons
                                        MyDrillConstants.DRILL_SHIP_DUST_STONES_EFFECT,
                                        MyDrillConstants.DRILL_SHIP_SPARKS_EFFECT,
                                        new MyDrillSensorSphere(def.SensorRadius, def.SensorOffset),
-                                       new MyDrillCutOut(def.SensorOffset, def.SensorRadius),
+                                       new MyDrillCutOut(def.CutOutOffset, def.CutOutRadius),
                                        HEAD_SLOWDOWN_TIME_IN_SECONDS, -0.4f, 0.4f, 1
             );
 
@@ -202,7 +206,7 @@ namespace Sandbox.Game.Weapons
 
         protected override bool CheckIsWorking()
         {
-            return ResourceSink.IsPowered && base.CheckIsWorking();
+            return ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId) && base.CheckIsWorking();
         }
 
         protected override void OnEnabledChanged()
@@ -214,7 +218,7 @@ namespace Sandbox.Game.Weapons
 
         void OnIsWorkingChanged(MyCubeBlock obj)
         {
-            ResourceSink.Update();
+            WantstoDrillChanged();
         }
 
         void Receiver_IsPoweredChanged()
@@ -244,7 +248,7 @@ namespace Sandbox.Game.Weapons
         void WantstoDrillChanged()
         {
             ResourceSink.Update();
-            if ((Enabled || WantsToDrill) && IsFunctional && ResourceSink != null && ResourceSink.IsPowered)
+            if ((Enabled || WantsToDrill) && IsFunctional && ResourceSink != null && ResourceSink.IsPoweredByType(MyResourceDistributorComponent.ElectricityId))
             {
                 // starts the animation
                 if (!m_drillBase.IsDrilling)
@@ -294,7 +298,7 @@ namespace Sandbox.Game.Weapons
             ResourceSink.Update();
 
             base.UpdateAfterSimulation100();
-            m_drillBase.UpdateAfterSimulation100();
+            m_drillBase.UpdateSoundEmitter();
 
             if (Sync.IsServer && IsFunctional && m_useConveyorSystem && this.GetInventory().GetItems().Count > 0)
             {
@@ -304,6 +308,7 @@ namespace Sandbox.Game.Weapons
 
         public override void UpdateBeforeSimulation10()
         {
+            Receiver_IsPoweredChanged();
             base.UpdateBeforeSimulation10();
 
             Debug.Assert(WantsToDrill || Enabled);
@@ -410,7 +415,7 @@ namespace Sandbox.Game.Weapons
             DetailedInfo.Append(BlockDefinition.DisplayNameText);
             DetailedInfo.AppendFormat("\n");
             DetailedInfo.AppendStringBuilder(MyTexts.Get(MySpaceTexts.BlockPropertiesText_MaxRequiredInput));
-            MyValueFormatter.AppendWorkInBestUnit(ResourceSink.MaxRequiredInput, DetailedInfo);
+            MyValueFormatter.AppendWorkInBestUnit(ResourceSink.MaxRequiredInputByType(MyResourceDistributorComponent.ElectricityId), DetailedInfo);
             DetailedInfo.AppendFormat("\n");
 
             RaisePropertiesChanged();
@@ -519,7 +524,7 @@ namespace Sandbox.Game.Weapons
 
         private float ComputeRequiredPower()
         {
-            return (IsFunctional && (Enabled || WantsToDrill)) ? ResourceSink.MaxRequiredInput : 0f;
+            return (IsFunctional && (Enabled || WantsToDrill)) ? ResourceSink.MaxRequiredInputByType(MyResourceDistributorComponent.ElectricityId) : 0f;
         }
 
         public bool UseConveyorSystem
@@ -626,12 +631,18 @@ namespace Sandbox.Game.Weapons
 
                 if (ResourceSink != null)
                 {
-                    ResourceSink.MaxRequiredInput = ComputeMaxRequiredPower() * m_powerConsumptionMultiplier;
+                    ResourceSink.SetMaxRequiredInputByType(MyResourceDistributorComponent.ElectricityId, ComputeMaxRequiredPower() * m_powerConsumptionMultiplier);
                     ResourceSink.Update();
 
                     UpdateDetailedInfo();
                 }
             }
+        }
+
+        public void UpdateSoundEmitter()
+        {
+            if (m_soundEmitter != null)
+                m_soundEmitter.Update();
         }
 
         #region IMyConveyorEndpointBlock implementation

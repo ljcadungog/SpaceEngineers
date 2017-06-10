@@ -27,15 +27,16 @@ namespace Sandbox.ModAPI
             MyAPIGateway.Entities = new MyEntitiesHelper_ModAPI();
             MyAPIGateway.Players = Sync.Players;
             MyAPIGateway.CubeBuilder = MyCubeBuilder.Static;
+            MyAPIGateway.IngameScripting = MyIngameScripting.Static;
             MyAPIGateway.TerminalActionsHelper = MyTerminalControlFactoryHelper.Static;
             MyAPIGateway.Utilities = MyAPIUtilities.Static;
             MyAPIGateway.Parallel = MyParallelTask.Static;
             MyAPIGateway.Physics = Physics.MyPhysics.Static;
             MyAPIGateway.Multiplayer = MyMultiplayer.Static;
             MyAPIGateway.PrefabManager = MyPrefabManager.Static;
-            MyAPIGateway.ScriptBlacklist = MyScriptCompiler.Static.Whitelist;
             MyAPIGateway.Input = (VRage.ModAPI.IMyInput)VRage.Input.MyInput.Static;
             MyAPIGateway.TerminalControls = MyTerminalControls.Static;
+            MyAPIGateway.Gui = new MyGuiModHelpers();
         }
 
         [StaticEventOwner]
@@ -141,7 +142,7 @@ namespace Sandbox.ModAPI
                 System.Net.IPEndPoint endpoint;
                 if (System.Net.IPAddressExtensions.TryParseEndpoint(address, out endpoint))
                 {
-                    Sandbox.Game.Gui.MyGuiScreenMainMenu.UnloadAndExitToMenu();
+                    MySessionLoader.UnloadAndExitToMenu();
                     MySandboxGame.Services.SteamService.SteamAPI.PingServer(System.Net.IPAddressExtensions.ToIPv4NetworkOrder(endpoint.Address), (ushort)endpoint.Port);
                 }
             }

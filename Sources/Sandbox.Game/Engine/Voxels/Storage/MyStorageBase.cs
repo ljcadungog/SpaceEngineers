@@ -1,6 +1,5 @@
 ﻿using Sandbox.Definitions;
 using Sandbox.Engine.Multiplayer;
-using Sandbox.Engine.Utils;
 using Sandbox.Game.Entities;
 using Sandbox.Game.World;
 using System;
@@ -8,12 +7,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Windows.Forms;
-using System.Windows.Forms.VisualStyles;
 using ParallelTasks;
 using VRage;
 using VRage.Collections;
 using VRage.FileSystem;
+using VRage.Profiler;
 using VRage.Utils;
 using VRage.Voxels;
 using VRageMath;
@@ -59,18 +57,21 @@ namespace Sandbox.Engine.Voxels
 
         protected byte[] m_compressedData;
         private readonly MyVoxelGeometry m_geometry = new MyVoxelGeometry();
-        private readonly FastResourceLock m_storageLock = new FastResourceLock();
+        protected readonly FastResourceLock m_storageLock = new FastResourceLock();
         protected byte m_defaultMaterial = MyDefinitionManager.Static.GetDefaultVoxelMaterialDefinition().Index;
 
         public abstract IMyStorageDataProvider DataProvider { get; set; }
 
         public static bool UseStorageCache = true;
         static LRUCache<int, MyStorageBase> m_storageCache = new LRUCache<int, MyStorageBase>(16);
+        static FastResourceLock m_loadCompressLock = new FastResourceLock();
+
         public bool Shared { get; protected set; }
 
         public bool MarkedForClose { get; private set; }
 
-        protected bool Pinned {
+        protected bool Pinned
+        {
             get { return m_pinCount > 0; }
         }
 
@@ -129,7 +130,10 @@ namespace Sandbox.Engine.Voxels
                 {
                     byte to;
                     if (map.TryGetValue(data[i], out to))
+                    {
                         data[i] = to;
+                        rewrites++;
+                    }
                 }
 
             if (rewrites > 0) this.WriteRange(cache, MyStorageDataTypeFlags.Material, ref minCorner, ref maxCorner);
@@ -182,7 +186,11 @@ namespace Sandbox.Engine.Voxels
                 file.Read(compressedData, 0, compressedData.Length);
             }
 
-            result = Load(compressedData);
+            // JC: with Parallelization, it was crashing the game here, without lock
+            using (m_loadCompressLock.AcquireExclusiveUsing())
+            {
+                result = Load(compressedData);
+            }
 
             //change materials
             if (definition.Changes != null)
@@ -225,6 +233,7 @@ namespace Sandbox.Engine.Voxels
                 {
                     Debug.Fail("Missing voxel map data! : " + name);
                     Sandbox.Engine.Networking.MyAnalyticsHelper.ReportActivityStart(null, "Missing voxel map data!", name, "DevNote", "", false);
+                    throw  new Exception(string.Format("Missing voxel map data! : {0}",name));
                 }
             }
             return result;
@@ -284,7 +293,7 @@ namespace Sandbox.Engine.Voxels
             MyPrecalcComponent.AssertUpdateThread();
 
             // We must flush all caches before saving.
-            if(CachedWrites)
+            if (CachedWrites)
                 WritePending(true);
 
             ProfilerShort.Begin("MyStorageBase.Save");
@@ -663,7 +672,7 @@ namespace Sandbox.Engine.Voxels
                     DataProvider.Close();
             }
 
-            if(CachedWrites)
+            if (CachedWrites)
                 OperationsComponent.Remove(this);
         }
 

@@ -23,6 +23,7 @@ namespace Sandbox.Game.Replication
     /// </summary>
     public class MyEntityPhysicsStateGroup : IMyStateGroup
     {
+        protected Func<MyEntity, Vector3D, bool> m_positionValidation;
         public delegate void MovedDelegate(ref MatrixD oldTransform, ref MatrixD newTransform);
         public delegate void VelocityDelegate(ref Vector3 oldVelocity,ref Vector3 newVelocity);
 
@@ -87,10 +88,10 @@ namespace Sandbox.Game.Replication
 
         public static float EffectiveSimulationRatio
         {
-            get { return MathHelper.Clamp(MyPhysics.SimulationRatio, 0.01f, 2); }
+            get { return (float)Math.Round(MathHelper.Clamp(MyPhysics.SimulationRatio, 0.001f, 10),3); }
         }
 
-        protected MovedDelegate MoveHandler { get { return OnMoved; } }
+        public MovedDelegate MoveHandler { get { return OnMoved; } }
         protected VelocityDelegate VelocityHandler { get { return OnVelocityChanged; } }
 
         public virtual StateGroupEnum GroupType { get { return StateGroupEnum.Physics; } }
@@ -260,7 +261,7 @@ namespace Sandbox.Game.Replication
             else
             {
                 bool apply = ReadTransform(stream, entity, deltaPosBase, applyWhenReading,movingOnServer, ref m_readTranslation, ref m_readQuaternion, ref m_readMatrix, posValidation, moveHandler);
-                if (apply)
+                if (apply && applyWhenReading)
                 {
                     var old = entity.PositionComp.WorldMatrix;
                     entity.PositionComp.SetWorldMatrix(m_readMatrix, null);
@@ -330,9 +331,8 @@ namespace Sandbox.Game.Replication
 
             if (entity != null)
             {
-                movingOnServer |= (entity.PositionComp.GetPosition() - position).LengthSquared() > epsilonSq;
-
-                if (movingOnServer && applyWhenReading && (posValidation == null || posValidation(entity, position)))
+                double delta = (entity.WorldMatrix.Translation - position).LengthSquared();
+                if (applyWhenReading && (movingOnServer || delta > 0.1 * 0.1) && (posValidation == null || posValidation(entity, position)))
                 {
                     MatrixD matrix = MatrixD.CreateFromQuaternion(orientation);
                     if (matrix.IsValid())
@@ -350,7 +350,7 @@ namespace Sandbox.Game.Replication
             return false;
         }
 
-        protected bool SerializeServerTransform(BitStream stream, MyEntity entity, Vector3D? deltaPosBase, bool movingOnServer, uint timeStamp, bool lowPrecisionOrientation, float positionTolerancy, ref Vector3D outPosition, ref Quaternion outOrientation, ref MatrixD outWorldMartix, Func<MyEntity, Vector3D, bool> posValidation = null)
+        protected bool SerializeServerTransform(BitStream stream, MyEntity entity, Vector3D? deltaPosBase, bool movingOnServer, uint timeStamp, bool lowPrecisionOrientation, ref Vector3D outPosition, ref Quaternion outOrientation, ref MatrixD outWorldMartix, Func<MyEntity, Vector3D, bool> posValidation = null)
         {
             stream.Serialize(ref timeStamp);
             if (stream.Writing)
@@ -389,8 +389,8 @@ namespace Sandbox.Game.Replication
                 if ((linearVelocityDiff > 0.001f || angularVelocityDiff > 0.001f || applyWhenReading) && entity.Physics != null)
                 {
                     Vector3 oldLinear = entity.Physics.LinearVelocity;
-                    entity.Physics.LinearVelocity = m_readLinearVelocity;
-                    entity.Physics.AngularVelocity = m_readAngularVelocity;
+                    entity.Physics.LinearVelocity = Vector3.Round(m_readLinearVelocity,2);
+                    entity.Physics.AngularVelocity = Vector3.Round(m_readAngularVelocity,2);
                     entity.Physics.UpdateAccelerations();
 
                     if (velocityHandler != null && MyFakes.COMPENSATE_SPEED_WITH_SUPPORT)

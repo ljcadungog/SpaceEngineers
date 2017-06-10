@@ -26,7 +26,9 @@ using VRageMath;
 using ObjectBuilders;
 using Havok;
 using VRage.Game.ModAPI.Interfaces;
+#if !XB1 // XB1_NOOPENVRWRAPPER
 using Valve.VR;
+#endif // !XB1
 using Sandbox.Game.Screens.Helpers;
 //using IMyControllableEntity = VRage.Game.ModAPI.Interfaces.IMyControllableEntity;
 //using IMyControllableEntity = Sandbox.Game.Entities.IMyControllableEntity;
@@ -225,11 +227,6 @@ namespace Sandbox.Game.Entities
         public VRage.Utils.MyStringId ControlContext
         {
             get {return MySpaceBindingCreator.CX_CHARACTER;}
-        }
-
-        public void Teleport(Vector3D pos)
-        {
-            PositionComp.SetPosition(pos);
         }
 
         public MyToolbar Toolbar { get { return null; } }

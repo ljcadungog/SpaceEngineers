@@ -1,22 +1,21 @@
 ﻿using System;
-using System.Diagnostics;
-
 using SharpDX;
 using SharpDX.Direct3D11;
 using SharpDX.WIC;
-
-using VRageMath;
-using VRage;
 using System.IO;
+using VRage.Render11.Common;
+using VRage.Render11.Resources;
+using ImageFileFormat = SharpDX.Direct3D9.ImageFileFormat;
 
 namespace VRageRender
 {
-    class MyTextureData
+    class MyTextureData: MyImmediateRC
     {
-        internal static bool ToFile(Resource res, string path, ImageFileFormat fmt)
+        internal static bool ToFile(IResource res, string path, ImageFileFormat fmt)
         {
             try
             {
+                System.IO.Directory.CreateDirectory(Path.GetDirectoryName(path)); // if the directory is not created, the "new FileStream" will fail
                 using (var stream = new FileStream(path, FileMode.Create, FileAccess.Write))
                 {
                     Save(res, stream, fmt);
@@ -24,7 +23,7 @@ namespace VRageRender
 
                 return true;
             }
-            catch (SharpDX.SharpDXException e)
+            catch (Exception e)
             {
                 MyRender11.Log.WriteLine("SaveResourceToFile()");
                 MyRender11.Log.IncreaseIndent();
@@ -35,7 +34,7 @@ namespace VRageRender
             }
         }
 
-        internal static byte[] ToData(Resource res, byte[] screenData, ImageFileFormat fmt)
+        internal static byte[] ToData(IResource res, byte[] screenData, ImageFileFormat fmt)
         {
             try
             {
@@ -56,9 +55,9 @@ namespace VRageRender
             }
         }
 
-        private static void Save(Resource res, Stream stream, ImageFileFormat fmt)
+        private static void Save(IResource res, Stream stream, ImageFileFormat fmt)
         {
-            var texture = res as Texture2D;
+            var texture = res.Resource as Texture2D;
             var textureCopy = new Texture2D(MyRender11.Device, new Texture2DDescription
             {
                 Width = (int)texture.Description.Width,
@@ -72,10 +71,10 @@ namespace VRageRender
                 CpuAccessFlags = CpuAccessFlags.Read,
                 OptionFlags = ResourceOptionFlags.None
             });
-            MyRender11.DeviceContext.CopyResource(res, textureCopy);
+            RC.CopyResource(res, textureCopy);
 
             DataStream dataStream;
-            var dataBox = MyRender11.DeviceContext.MapSubresource(
+            var dataBox = RC.MapSubresource(
                 textureCopy,
                 0,
                 0,
@@ -131,7 +130,7 @@ namespace VRageRender
                 }
             }
 
-            MyRender11.DeviceContext.UnmapSubresource(textureCopy, 0);
+            RC.UnmapSubresource(textureCopy, 0);
             textureCopy.Dispose();
             bitmap.Dispose();
         }

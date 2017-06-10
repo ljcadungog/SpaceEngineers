@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using VRageMath;
 using Sandbox.Engine.Utils;
 using VRage;
+using VRage.ModAPI;
+using VRage.Profiler;
 
 namespace Sandbox.Game.Entities
 {
@@ -83,7 +85,7 @@ namespace Sandbox.Game.Entities
 
         public static void Add(MyEntity entity)
         {
-            Debug.Assert(entity.Parent == null, "Only topmost entities");
+            Debug.Assert(entity.Parent == null || (entity.Flags & EntityFlags.IsGamePrunningStructureObject) != 0, "Only topmost entities");
 
             if (entity.TopMostPruningProxyId != MyVRageConstants.PRUNING_PROXY_ID_UNITIALIZED) return;  // already inserted
 
@@ -151,9 +153,9 @@ namespace Sandbox.Game.Entities
 
         private static void MoveInternal(MyEntity entity)
         {
-            if (entity.Parent != null)
+            if (entity.Parent != null && (entity.Flags & EntityFlags.IsGamePrunningStructureObject) == 0)
                 return;
-            VRage.ProfilerShort.Begin(string.Format("Move:{0}", (entity.GetTopMostParent() == entity ? "Topmost" : "Child")));
+            ProfilerShort.Begin(string.Format("Move:{0}", (entity.GetTopMostParent() == entity ? "Topmost" : "Child")));
             if (entity.TopMostPruningProxyId != MyVRageConstants.PRUNING_PROXY_ID_UNITIALIZED)
             {
                 BoundingBoxD bbox = GetEntityAABB(entity);
@@ -161,7 +163,7 @@ namespace Sandbox.Game.Entities
                 if (bbox.Size == Vector3D.Zero)  // remove entities with zero bounding boxes
                 {
                     Remove(entity);
-                    VRage.ProfilerShort.End();
+                    ProfilerShort.End();
                     return;
                 }
 
@@ -199,7 +201,7 @@ namespace Sandbox.Game.Entities
                     }
                 }
             }
-            VRage.ProfilerShort.End();
+            ProfilerShort.End();
         }
 
         private static void Update()

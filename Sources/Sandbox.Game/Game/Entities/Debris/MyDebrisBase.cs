@@ -134,7 +134,7 @@ namespace Sandbox.Game.Entities.Debris
 
                 HkShape shape;
                 m_massProperties = new HkMassProperties();
-                m_massProperties.Mass = 50;
+                m_massProperties.Mass = (float)(0.5236f * Math.Pow(2 * RandomScale, 3)) * 2600;//0.5236f = pi / 6, 2600 = default stone density
                 Container.Entity.Physics = GetPhysics(RigidBodyFlag.RBF_DEBRIS);
                 (Container.Entity.Physics as MyDebrisPhysics).CreatePhysicsShape(out shape, ref m_massProperties);
                 (Container.Entity.Physics as MyDebrisPhysics).CreateFromCollisionObject(shape, Vector3.Zero, MatrixD.Identity, m_massProperties, MyPhysics.CollisionLayers.DebrisCollisionLayer);
@@ -187,8 +187,7 @@ namespace Sandbox.Game.Entities.Debris
                                                       MyUtils.GetRandomRadian());
                 MyEntities.Add(m_entity);
                 Container.Entity.Physics.Enabled = true;
-                float simulationRatio = Sync.IsServer ? 1.0f : Sync.RelativeSimulationRatio * Sync.RelativeSimulationRatio;
-                Vector3D gravity = simulationRatio * MyGravityProviderSystem.CalculateNaturalGravityInPoint(position.Translation);
+                Vector3D gravity = MyGravityProviderSystem.CalculateNaturalGravityInPoint(position.Translation);
                 ((MyPhysicsBody)Container.Entity.Physics).RigidBody.Gravity = gravity;
                 (Container.Entity.Physics as MyPhysicsBody).HavokWorld.ActiveRigidBodies.Add((Container.Entity.Physics as MyPhysicsBody).RigidBody);
                 m_isStarted = true;
@@ -207,7 +206,11 @@ namespace Sandbox.Game.Entities.Debris
                 {
                     int age = MySandboxGame.TotalGamePlayTimeInMilliseconds - m_createdTime;
                     if (age > LifespanInMiliseconds)
+                    {
                         MarkForClose();
+                        return; //dont dither 
+                    }
+
                     float dithering = age / (float)LifespanInMiliseconds;
                     float ditherStart = 3.0f / 4.0f;
                     if (dithering > ditherStart)

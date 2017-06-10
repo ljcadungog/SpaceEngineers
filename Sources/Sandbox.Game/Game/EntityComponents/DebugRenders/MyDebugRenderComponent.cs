@@ -24,6 +24,7 @@ using VRage.ModAPI;
 using VRage.Game.Components;
 using VRage.Game.Models;
 using VRage.Game.Entity;
+using VRageRender.Import;
 
 namespace Sandbox.Game.Components
 {
@@ -70,6 +71,13 @@ namespace Sandbox.Game.Components
         }
         public override void DebugDraw()
         {
+            // Probably a base entity, render its dummy
+            if (Entity.Render.RenderObjectIDs[0] == UInt32.MaxValue)
+            {
+                MyRenderProxy.DebugDrawSphere(Entity.PositionComp.WorldMatrix.Translation, 0.2f, Color.Orange, 0.5f, true);
+                MyRenderProxy.DebugDrawAxis(Entity.PositionComp.WorldMatrix, 1, true);
+            }
+
             if (MyDebugDrawSettings.DEBUG_DRAW_MODEL_DUMMIES)
             {
                 DebugDrawDummies(Entity.Render.GetModel());

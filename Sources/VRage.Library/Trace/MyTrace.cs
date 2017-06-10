@@ -11,27 +11,28 @@ namespace VRage.Trace
     public enum TraceWindow
     {
         Default,
-        Saving,
-        ParallelParticles,
-        Server,
         EntityId,
         Multiplayer,
         MultiplayerFiltered,
-        MultiplayerAlerts,
         Analytics,
         Ai,
+        MTiming,
+        MPackets,
+        MPositions,
+        MPositions2,
+        MPositions3
     }
 
     public delegate ITrace InitTraceHandler(string traceId, string traceName);
 
     public static class MyTrace
     {
-        const string WindowPrefix = "SE_ID";
         const string WindowName = "SE";
 
         static Dictionary<int, ITrace> m_traces;
         static MyNullTrace m_nullTrace = new MyNullTrace();
 
+#if !XB1
         [Conditional("DEBUG")]
         public static void Init(InitTraceHandler handler)
         {
@@ -55,9 +56,7 @@ namespace VRage.Trace
             foreach (var e in Enum.GetValues(typeof(TraceWindow)))
             {
                 var name = ((TraceWindow)e == TraceWindow.Default) ? windowName : (windowName + "_" + e.ToString());
-
-                string id = String.Format("{0}_{1}", WindowPrefix, name);
-                m_traces[(int)e] = handler(id, name);
+                m_traces[(int)e] = handler(name, name);
             }
         }
 
@@ -65,6 +64,7 @@ namespace VRage.Trace
         {
             return MyWintraceWrapper.CreateTrace(traceId, traceName);
         }
+#endif // !XB1
 
         [Conditional("DEBUG")]
         public static void Watch(string name, object value)

@@ -1,10 +1,8 @@
-﻿using Sandbox.Common;
-using Sandbox.Game.Entities;
-using System;
-using System.Diagnostics;
+﻿using System;
 using System.Runtime.CompilerServices;
 using VRage.Game;
 using VRage.Game.Entity;
+using VRage.Network;
 
 namespace Sandbox.Engine.Utils
 {
@@ -42,10 +40,6 @@ namespace Sandbox.Engine.Utils
 
         public static bool ENABLE_INFINITE_REACTOR_FUEL = false; // When enabled, generator generates new uranium when it runs out of old stock.
         public static bool ENABLE_BATTERY_SELF_RECHARGE = false; // When enabled, battery is able to recharge itself even if not plugged in.
-
-        // To make player experience better, slowdown will be faster than acceleration by this ratio
-        public static float SLOWDOWN_FACTOR_TORQUE_MULTIPLIER = 5.0f;
-        public static float SLOWDOWN_FACTOR_TORQUE_MULTIPLIER_LARGE_SHIP = 2.0f;
 
         public static bool MANUAL_CULL_OBJECTS = true;
 
@@ -95,13 +89,15 @@ namespace Sandbox.Engine.Utils
 
         public static bool SHOW_INVALID_TRIANGLES = false;
 
+        public static bool ENABLE_NEW_COLLISION_AVOIDANCE = true;
+
         //Sound Myfakes
-        public static bool ENABLE_NEW_SOUNDS = false;
-        public static bool ENABLE_NEW_SOUNDS_QUICK_UPDATE = false;
+        public static bool ENABLE_NEW_SOUNDS = true;
+        public static bool ENABLE_NEW_SOUNDS_QUICK_UPDATE = true;
         public static bool ENABLE_NEW_SMALL_SHIP_SOUNDS = true;
         public static bool ENABLE_NEW_LARGE_SHIP_SOUNDS = true;
         public static bool ENABLE_MUSIC_CONTROLLER = true;
-        public static bool ENABLE_REALISTIC_LIMITER = true;
+        public static bool ENABLE_REALISTIC_LIMITER = false;
 
         public static bool ENABLE_NON_PUBLIC_BLOCKS = false;
         public static bool ENABLE_NON_PUBLIC_SCENARIOS = !MyFinalBuildConstants.IS_OFFICIAL;
@@ -111,7 +107,7 @@ namespace Sandbox.Engine.Utils
 
         public static bool ENABLE_COLOR_MASK_FOR_EVERYTHING = false;
 
-        public static bool ENABLE_CHARACTER_AND_DEBRIS_COLLISIONS = false;
+        public static bool ENABLE_CHARACTER_AND_DEBRIS_COLLISIONS = true;
         
         //  When true, every update will contain few miliseconds of delay - use only for testing/debugging
         public static bool SIMULATE_SLOW_UPDATE = false;
@@ -127,8 +123,6 @@ namespace Sandbox.Engine.Utils
 
         public static bool ENABLE_METEOR_SHOWERS = true;
 
-        public static bool ENABLE_DX11_RENDERER = true;
-
         public static bool SHOW_INVENTORY_ITEM_IDS = false;
         
         public static bool SIMULATE_QUICK_TRIGGER = false;
@@ -142,8 +136,6 @@ namespace Sandbox.Engine.Utils
         public static bool TEST_PREFABS_FOR_INCONSISTENCIES = false;
 
         public static bool SHOW_PRODUCTION_QUEUE_ITEM_IDS = false;
-
-        public static bool ENABLE_MP_DATA_HASHES = false;
 
         public static bool ENABLE_CONNECT_COMMAND_LINE = true;
 
@@ -180,7 +172,9 @@ namespace Sandbox.Engine.Utils
         // Landing gear ignore contacts with grid they're attached to
         public static bool LANDING_GEAR_IGNORE_DAMAGE_CONTACTS = true;
 
+#if !XB1 // XB1_NOWORKSHOP
         public static bool ENABLE_WORKSHOP_MODS = true;
+#endif // !XB1
 
         public static bool ENABLE_BATTERY = true;
 
@@ -189,9 +183,6 @@ namespace Sandbox.Engine.Utils
         public static bool ENABLE_BLOCK_SHIP_SWAP = false;
 
         public static bool SKIP_VOXELS_DURING_LOAD = false;
-
-        // When enabled replication distance is 100m and sleep time 30 seconds.
-        public static bool MULTIPLAYER_REPLICATION_TEST = false;
 
         public static bool ENABLE_PISTON = true;
 
@@ -206,15 +197,14 @@ namespace Sandbox.Engine.Utils
 
         public static bool ENABLE_GYRO_OVERRIDE = true;
 
-        public static bool TEST_MODELS = !MyFinalBuildConstants.IS_OFFICIAL;
+        public static bool TEST_MODELS = false;
+        public static bool TEST_MODELS_WRONG_TRIANGLES = false;
 
         public static bool DISABLE_SOUND_POOLING = true;
 
         public static bool MOVE_WINDOW_TO_CORNER = false;
 
         public static bool ENABLE_GRAVITY_GENERATOR_SPHERE = true;
-
-        public static bool ENABLE_CAMERA_BLOCK = true;
 
         public static bool ENABLE_REMOTE_CONTROL = true;
 
@@ -223,10 +213,6 @@ namespace Sandbox.Engine.Utils
         public static bool ENABLE_BLOCK_PLACEMENT_ON_VOXEL = false;
 
         public static bool ENABLE_VOXEL_MODIFIER_EVERYWHERE = false;
-
-        public static bool ENABLE_MULTIPLAYER_VELOCITY_COMPENSATION = true;
-
-        public static bool ENABLE_MULTIPLAYER_CONSTRAINT_COMPENSATION = true;
 
         public static bool ENABLE_COMPOUND_BLOCKS = false;
 
@@ -399,8 +385,6 @@ namespace Sandbox.Engine.Utils
 
         public static bool USE_HAVOK_MODELS = false;
 
-        public static bool ENABLE_DEVELOPER_SPECTATOR_CONTROLS = MyFinalBuildConstants.IS_DEBUG;
-
         public static bool LAZY_LOAD_DESTRUCTION = true;
 
         public static bool ENABLE_STANDARD_AXES_ROTATION = false;
@@ -413,8 +397,6 @@ namespace Sandbox.Engine.Utils
         public static bool REMOVE_NON_PUBLIC_BLOCKS = false;
 
         public static bool ENABLE_ROTATION_HINTS = true;
-
-        public static bool ENABLE_TUTORIAL_PROMPT = true;
 
         public static bool ENABLE_NOTIFICATION_BLOCK_NOT_AVAILABLE = true;
 
@@ -459,17 +441,11 @@ namespace Sandbox.Engine.Utils
 
         public static bool ALWAYS_MORNING_FOG = false;
 
-        public static bool ME_MULTIPLAYER = true;
-        public static bool ME_PLAYERS_SPAWN_NEAR_PLAYER = true;
-        public static bool CHARACTER_SERVER_SYNC = false;
-
         public static bool ALWAYS_NOON = false;
 
         public static bool DEVELOPMENT_PRESET = false;
 
         public static bool SHOW_CURRENT_VOXEL_MAP_AABB_IN_VOXEL_HAND = true;
-
-        public static bool ENABLE_BATTLE_SYSTEM = false;
 
         public static bool ENABLE_DRAW_VOXEL_STORAGE_PLAYER_POSITION = false;
 
@@ -487,7 +463,7 @@ namespace Sandbox.Engine.Utils
         // Ragdoll
         public static bool ENABLE_RAGDOLL_ANIMATION = false;
         public static bool ENABLE_RAGDOLL_COLLISION_WITH_CHARACTER_BODY = true;
-        public static bool ENABLE_RAGDOLL_BONES_TRANSLATION = false;
+        public static bool ENABLE_RAGDOLL_BONES_TRANSLATION = true;
         public static bool ENABLE_COLLISONS_ON_RAGDOLL = true;
         public static bool ENABLE_RAGDOLL_DEFAULT_PROPERTIES = false;
         public static bool ENABLE_RAGDOLL_CLIENT_SYNC = false;
@@ -548,11 +524,7 @@ namespace Sandbox.Engine.Utils
 
         public static bool ENABLE_STATS_GUI = true;
 
-        public static bool NEW_POS_UPDATE_TIMING = false;
-
         public static bool ENABLE_CUBE_BUILDER_MULTIBLOCK = false;
-
-        public static bool ENABLE_DOUBLED_KINEMATIC = true;
 
         public static bool WELD_LANDING_GEARS = true;
 
@@ -600,7 +572,6 @@ namespace Sandbox.Engine.Utils
         public static bool ENABLE_INFINARIO = false;
         public static bool SUSPENSION_POWER_RATIO = false;
         public static bool WHEEL_SOFTNESS = false;
-        public static bool ENABLE_SPECTATOR_ROLL_MOVEMENT = true;
         public static bool USE_BICUBIC_HEIGHTMAP_SMOOTHING = true;
         public static bool FORCE_SINGLE_WORKER = false;
         public static bool DISABLE_CLIPBOARD_PLACEMENT_TEST = false;
@@ -609,13 +580,13 @@ namespace Sandbox.Engine.Utils
         public static bool ENABLE_SPLIT_VOXEL_READ_QUERIES = false;
         public static bool ENABLE_COMPOUND_BLOCK_COLLISION_DUMMIES = false;
 
-        public static bool ENABLE_MULTIPLAYER_ENTITY_SUPPORT = true;
         public static bool ENABLE_EXTENDED_PLANET_OPTIONS = false;
+        public static bool ENABLE_MODEL_QUALITY_IN_GRAPHICS_OPTION = false; // this is only temporary "Fake", it should be removed completly after it will be fully supported (this flag makes the code dirty...)
 
         public static bool ENABLE_JOIN_STARTED_BATTLE = false;
         public static bool ENABLE_JOIN_SCREEN_REMAINING_TIME = false;
         public static bool ENABLE_INVENTORY_FIX = true;
-        public static bool ENABLE_VOXEL_LOD_MORPHING = true;
+        public static bool ENABLE_VOXEL_LOD_MORPHING = false;
         public static bool ENABLE_LAZY_VOXEL_PHYSICS = true;
         public static bool ENABLE_PLANET_HIERARCHY = true;
 
@@ -626,7 +597,7 @@ namespace Sandbox.Engine.Utils
 
         public static bool SKIP_PISTON_TOP_REMOVAL = true;
         public static bool GRID_IGNORE_VOXEL_OVERLAP = false;
-        public static bool COMPENSATE_SPEED_WITH_SUPPORT = true;
+        public static bool COMPENSATE_SPEED_WITH_SUPPORT = false;
 
         public static bool ENABLE_FRACTURE_PIECE_SHAPE_CHECK = false;
 
@@ -646,13 +617,13 @@ namespace Sandbox.Engine.Utils
 
         public static bool ENABLE_MEDIEVAL_FACTIONS = false;
 
-#if XB1_TMP
+#if XB1
         public static bool ENABLE_RUN_WITHOUT_STEAM = true;
 #else
         public static bool ENABLE_RUN_WITHOUT_STEAM = false;
 #endif
 
-        public static bool PRECISE_SIM_SPEED = true;
+        public static bool PRECISE_SIM_SPEED = false;
         public static bool ENABLE_SIMSPEED_LOCKING = false;
 
         public static bool BACKGROUND_OXYGEN = true;
@@ -664,6 +635,7 @@ namespace Sandbox.Engine.Utils
         public static bool ENABLE_SMALL_GRID_BLOCK_COMPONENT_INFO = true;
 
         public static bool ENABLE_MEDIEVAL_AREA_INVENTORY = false;
+        public static bool ENABLE_MEDIEVAL_CREATIVE_OWNERSHIP = true;
 
         public static bool ENABLE_BOUNDINGBOX_SHRINKING = true;
 
@@ -686,7 +658,6 @@ namespace Sandbox.Engine.Utils
         public static bool ENABLE_VR_REMOTE_CONTROL_WAYPOINTS_FAST_MOVEMENT = false;
         public static bool ENABLE_VR_BUILDING = false;
 
-        public static bool ENABLE_LOAD_NEEDED_SESSION_COMPONENTS = false;
         public static bool ENABLE_SMALL_GRIDS_IN_SURVIVAL_TOOLBAR_CONFIG = true;
 
         public static bool ENABLE_CHARACTER_CONTROL_ON_SERVER = true;
@@ -699,11 +670,51 @@ namespace Sandbox.Engine.Utils
         public static bool ENABLE_QUICK_WARDROBE = false;
         public static bool ENABLE_TYPES_FROM_MODS = false;
 
-        public static bool ENABLE_PRELOAD_DEFINITIONS = true;
+        public static bool ENABLE_PRELOAD_DEFINITIONS = false;     // does not work as expected (ask cenda for more info)
         public static bool ENABLE_ME_DOOR_COLLISION_CHECK = true;
 
+		public static bool ENABLE_CESTMIR_PATHFINDING = false;
+#if XB1
+        public static bool XB1_PREVIEW = true;
+#else // !XB1
+        public static bool XB1_PREVIEW = false;
+#endif // !XB1         
         public static bool ENABLE_ROSLYN_SCRIPTS = true;
-
         public static bool ENABLE_ROSLYN_SCRIPT_DIAGNOSTICS = false;
+
+        /// <summary>
+        /// MULTIPLAYER RELATED FAKES
+        /// </summary>
+        public static bool MP_ISLANDS = false;
+        public static bool MULTIPLAYER_CLIENT_PHYSICS = true;
+        public static bool MULTIPLAYER_SIMULATE_CHARACTER_CLIENT = MULTIPLAYER_CLIENT_PHYSICS;
+        public static bool MP_SYNC_CLUSTERTREE = false;
+        
+        // smoothing
+        public static bool MULTIPLAYER_SMOOTH_PING = true;
+        public static bool MULTIPLAYER_SMOOTH_TIMESTAMP_CORRECTION = true;
+        public static bool MULTIPLAYER_USE_PLAYOUT_DELAY_BUFFER = true;
+
+        // MP: CLEANUP!!
+        // To make player experience better, slowdown will be faster than acceleration by this ratio
+        public static float SLOWDOWN_FACTOR_TORQUE_MULTIPLIER = 5.0f;
+        public static float SLOWDOWN_FACTOR_TORQUE_MULTIPLIER_LARGE_SHIP = 2.0f;
+        // When enabled replication distance is 100m and sleep time 30 seconds.
+        public static bool MULTIPLAYER_REPLICATION_TEST = false;
+        // When enabled, specific asserts in multiplayer code no longer trigger
+        public static bool DISABLE_MULTIPLAYER_ASSERTS = true;
+        public static bool ENABLE_MULTIPLAYER_VELOCITY_COMPENSATION = true;
+        public static bool ENABLE_MULTIPLAYER_CONSTRAINT_COMPENSATION = true;
+        public static bool ME_MULTIPLAYER = true;
+        public static bool ME_PLAYERS_SPAWN_NEAR_PLAYER = true;
+        public static bool CHARACTER_SERVER_SYNC = false;
+        public static bool ENABLE_MULTIPLAYER_ENTITY_SUPPORT = true;
+        public static bool ENABLE_MP_DATA_HASHES = false;
+        public static bool ENABLE_DOUBLED_KINEMATIC = true;
+        public static bool ENABLE_CPU_PARTICLES = true;
+
+        public static bool FORCE_UPDATE_NEWSLETTER_STATUS = false;
+
+        public static bool SUN_GLARE = true;
     }
 }

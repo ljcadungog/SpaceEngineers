@@ -23,6 +23,11 @@ using VRage.Game.Components;
 using Sandbox.Game.GameSystems;
 using VRage;
 using VRage.Game;
+using VRage.Profiler;
+
+#if XB1 // XB1_ALLINONEASSEMBLY
+using VRage.Utils;
+#endif // XB1
 
 namespace Sandbox.Game.Components
 {
@@ -64,6 +69,9 @@ namespace Sandbox.Game.Components
         // Create additional model generators from plugins using reflection.
         public void CreateAdditionalModelGenerators(MyCubeSize gridSizeEnum)
         {
+#if XB1 // XB1_ALLINONEASSEMBLY
+            {
+#else // !XB1
             Assembly[] assemblies = new Assembly[] {
                 Assembly.GetExecutingAssembly(),
                 MyPlugins.GameAssembly,
@@ -75,11 +83,17 @@ namespace Sandbox.Game.Components
             {
                 if (assembly == null)
                     continue;
+#endif // !XB1
 
                 // Lookup
                 Type lookupType = typeof(IMyBlockAdditionalModelGenerator);
+#if XB1 // XB1_ALLINONEASSEMBLY
+                IEnumerable<Type> lookupTypes = MyAssembly.GetTypes().Where(
+                        t => lookupType.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract);
+#else // !XB1
                 IEnumerable<Type> lookupTypes = assembly.GetTypes().Where(
                         t => lookupType.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract);
+#endif // !XB1
 
                 // Create instances
                 foreach (var type in lookupTypes)
@@ -182,7 +196,7 @@ namespace Sandbox.Game.Components
         public override void Draw()
         {
             base.Draw();
-            if (MyTrashRemoval.PreviewEnabled && MySession.Static.HasAdminRights)
+            if (MyTrashRemoval.PreviewEnabled && MySession.Static.HasCreativeRights)
             {
                 DrawTrashAdminView();
             }
@@ -240,7 +254,8 @@ namespace Sandbox.Game.Components
                     MySimpleObjectDraw.DrawLine(center - matrix.Up * 0.5f * size, center + matrix.Up * 0.5f * size, mat, ref color, thickness);
                     MySimpleObjectDraw.DrawLine(center - matrix.Forward * 0.5f * size, center + matrix.Forward * 0.5f * size, mat, ref color, thickness);
                     MySimpleObjectDraw.DrawLine(center - matrix.Right * 0.5f * size, center + matrix.Right * 0.5f * size, mat, ref color, thickness);
-                    MyTransparentGeometry.AddBillboardOriented("RedDotIgnoreDepth", Color.White.ToVector4(), center, MySector.MainCamera.LeftVector, MySector.MainCamera.UpVector, 0.1f * size, priority: 1);
+                    MyTransparentGeometry.AddBillboardOriented("RedDotIgnoreDepth", Color.White.ToVector4(), center, MySector.MainCamera.LeftVector, 
+                        MySector.MainCamera.UpVector, 0.1f * size);
                 }
             }
             if (MyCubeGrid.ShowGridPivot)
@@ -277,7 +292,8 @@ namespace Sandbox.Game.Components
                     MySimpleObjectDraw.DrawLine(pos, pos + matrix.Forward * 0.5f * size, mat, ref color, thickness);
                     color = Color.Red.ToVector4();
                     MySimpleObjectDraw.DrawLine(pos, pos + matrix.Right * 0.5f * size, mat, ref color, thickness);
-                    MyTransparentGeometry.AddBillboardOriented("RedDotIgnoreDepth", Color.White.ToVector4(), pos, MySector.MainCamera.LeftVector, MySector.MainCamera.UpVector, 0.1f * size, priority: 1);
+                    MyTransparentGeometry.AddBillboardOriented("RedDotIgnoreDepth", Color.White.ToVector4(), pos, MySector.MainCamera.LeftVector, 
+                        MySector.MainCamera.UpVector, 0.1f * size);
                     MyRenderProxy.DebugDrawAxis(matrix, 0.5f, false);//DX 11 desnt support depthRead false
                 }
             }
@@ -421,13 +437,13 @@ namespace Sandbox.Game.Components
         protected override void UpdateRenderObjectVisibility(bool visible)
         {
             base.UpdateRenderObjectVisibility(visible);
-            for (int i = 0; i < AdditionalRenderObjects.Length; i++)
+            /*for (int i = 0; i < AdditionalRenderObjects.Length; i++)
             {
                 if (AdditionalRenderObjects[i] != MyRenderProxy.RENDER_ID_UNASSIGNED)
                 {
                     VRageRender.MyRenderProxy.UpdateRenderObjectVisibility(AdditionalRenderObjects[i], visible, Container.Entity.NearFlag);
                 }
-            }
+            }*/
         }
         #endregion
     }

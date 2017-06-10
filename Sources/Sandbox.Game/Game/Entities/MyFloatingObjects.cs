@@ -16,8 +16,6 @@ using VRageMath;
 using VRage;
 using Sandbox.Engine.Utils;
 using Sandbox.Game.Gui;
-
-using VRage.Voxels;
 using VRage.Game.Components;
 using VRage.ObjectBuilders;
 using Sandbox.Game.Entities.Character;
@@ -27,6 +25,7 @@ using Sandbox.Engine.Multiplayer;
 using VRage.Game.Entity;
 using Sandbox.Game.Entities.Inventory;
 using VRage.Game;
+using VRage.Profiler;
 
 #endregion
 
@@ -154,8 +153,15 @@ namespace Sandbox.Game.Entities
                 OptimizeFloatingObjects();
             }
             else
+            {
                 if (m_needReupdateNewObjects)
+                {
                     OptimizeCloseDistances();
+                }
+
+                // Change quality type to critical, it can be debris after contact with character controller
+                OptimizeQualityType();
+            }
 
             if (VRage.Input.MyInput.Static.ENABLE_DEVELOPER_KEYS)
             {
@@ -324,6 +330,10 @@ namespace Sandbox.Game.Entities
                 thrownEntity.Physics.ForceActivate();
                 ApplyPhysics(thrownEntity, motionInheritedFrom);
                 Debug.Assert(thrownEntity.Save == true, "Thrown item will not be saved. Feel free to ignore this.");
+
+                //Visual scripting action
+                if (MyVisualScriptLogicProvider.ItemSpawned != null)
+                    MyVisualScriptLogicProvider.ItemSpawned(item.Content.TypeId.ToString(), item.Content.SubtypeName, thrownEntity.EntityId, item.Amount.ToIntSafe(), worldMatrix.Translation);
             }
             return thrownEntity;
         }
@@ -345,6 +355,10 @@ namespace Sandbox.Game.Entities
                 AddToPos(thrownEntity, pos, motionInheritedFrom);
 
                 thrownEntity.Physics.ForceActivate();
+
+                //Visual scripting action
+                if (MyVisualScriptLogicProvider.ItemSpawned != null)
+                    MyVisualScriptLogicProvider.ItemSpawned(item.Content.TypeId.ToString(), item.Content.SubtypeName, thrownEntity.EntityId, item.Amount.ToIntSafe(), pos);
             }
             return thrownEntity;
         }
@@ -367,6 +381,10 @@ namespace Sandbox.Game.Entities
             var pos = MyUtils.GetRandomBorderPosition(ref sphere);
             AddToPos(thrownEntity, pos, motionInheritedFrom);
             ProfilerShort.End();
+
+            //Visual scripting action
+            if (thrownEntity != null && MyVisualScriptLogicProvider.ItemSpawned != null)
+                MyVisualScriptLogicProvider.ItemSpawned(item.Content.TypeId.ToString(), item.Content.SubtypeName, thrownEntity.EntityId, item.Amount.ToIntSafe(), pos);
             return thrownEntity;
         }
 
@@ -439,14 +457,7 @@ namespace Sandbox.Game.Entities
             for (int i = 0; i < m_synchronizedFloatingObjects.Count; i++)
             {
                 var floatingObject = m_synchronizedFloatingObjects[i];
-                if (floatingObject.Physics.LinearVelocity.Length() > 5)
-                {
-                    floatingObject.Physics.ChangeQualityType(Havok.HkCollidableQualityType.Bullet);
-                }
-                else
-                {
-                    floatingObject.Physics.ChangeQualityType(Havok.HkCollidableQualityType.Debris);
-                }
+                floatingObject.Physics.ChangeQualityType(Havok.HkCollidableQualityType.Critical); //Default was .Debris                 
             }
         }
 
@@ -665,7 +676,7 @@ namespace Sandbox.Game.Entities
         /// </summary>
         public static void RequestSpawnCreative(MyObjectBuilder_FloatingObject obj)
         {
-            if (MySession.Static.HasAdminRights||MySession.Static.CreativeMode)
+            if (MySession.Static.HasCreativeRights||MySession.Static.CreativeMode)
             {
                 MyMultiplayer.RaiseStaticEvent(x => RequestSpawnCreative_Implementation, obj);
             }
@@ -674,7 +685,7 @@ namespace Sandbox.Game.Entities
         [Event, Reliable, Server]
         private static void RequestSpawnCreative_Implementation(MyObjectBuilder_FloatingObject obj)
         {
-            if (MySession.Static.CreativeMode ||MyEventContext.Current.IsLocallyInvoked|| MySession.Static.HasPlayerAdminRights(MyEventContext.Current.Sender.Value))
+            if (MySession.Static.CreativeMode ||MyEventContext.Current.IsLocallyInvoked|| MySession.Static.HasPlayerCreativeRights(MyEventContext.Current.Sender.Value))
             {
                 MyEntities.CreateFromObjectBuilderAndAdd(obj);
             }

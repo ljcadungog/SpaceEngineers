@@ -6,6 +6,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security;
+#if XB1 // XB1_SYNC_SERIALIZER_NOEMIT
+using System.Reflection;
+using VRage.Reflection;
+#endif // XB1
+
 
 namespace VRageMath
 {
@@ -14,7 +19,12 @@ namespace VRageMath
     /// </summary>
     [ProtoBuf.ProtoContract, Serializable]    
     [StructLayout(LayoutKind.Explicit)]
+#if !XB1 // XB1_SYNC_SERIALIZER_NOEMIT
     public struct Matrix : IEquatable<Matrix>
+#else // XB1
+    public struct Matrix : IEquatable<Matrix>, IMySetGetMemberDataHelper
+#endif // XB1
+
     {
         private unsafe struct F16
         {
@@ -1530,20 +1540,20 @@ namespace VRageMath
         {
             if ((double)fieldOfView <= 0.0 || (double)fieldOfView >= 3.14159274101257)
                 throw new ArgumentOutOfRangeException("fieldOfView", string.Format((IFormatProvider)CultureInfo.CurrentCulture, "OutRangeFieldOfView", new object[1]
-        {
-          (object) "fieldOfView"
-        }));
+                {
+                    (object) "fieldOfView"
+                }));
             else if ((double)nearPlaneDistance <= 0.0)
                 throw new ArgumentOutOfRangeException("nearPlaneDistance", string.Format((IFormatProvider)CultureInfo.CurrentCulture, "NegativePlaneDistance", new object[1]
-        {
-          (object) "nearPlaneDistance"
-        }));
+                {
+                    (object) "nearPlaneDistance"
+                }));
             else if ((double)farPlaneDistance <= 0.0)
             {
                 throw new ArgumentOutOfRangeException("farPlaneDistance", string.Format((IFormatProvider)CultureInfo.CurrentCulture, "NegativePlaneDistance", new object[1]
-        {
-          (object) "farPlaneDistance"
-        }));
+                {
+                    (object) "farPlaneDistance"
+                }));
             }
             else
             {
@@ -1561,6 +1571,44 @@ namespace VRageMath
                 matrix.M34 = -1f;
                 matrix.M41 = matrix.M42 = matrix.M44 = 0.0f;
                 matrix.M43 = (float)((double)nearPlaneDistance * (double)farPlaneDistance / ((double)nearPlaneDistance - (double)farPlaneDistance));
+                return matrix;
+            }
+        }
+        public static Matrix CreatePerspectiveFovRhComplementary(float fieldOfView, float aspectRatio, float nearPlaneDistance, float farPlaneDistance)
+        {
+            if ((double)fieldOfView <= 0.0 || (double)fieldOfView >= 3.14159274101257)
+                throw new ArgumentOutOfRangeException("fieldOfView", string.Format((IFormatProvider)CultureInfo.CurrentCulture, "OutRangeFieldOfView", new object[1]
+                {
+                    (object) "fieldOfView"
+                }));
+            else if ((double)nearPlaneDistance <= 0.0)
+                throw new ArgumentOutOfRangeException("nearPlaneDistance", string.Format((IFormatProvider)CultureInfo.CurrentCulture, "NegativePlaneDistance", new object[1]
+                {
+                    (object) "nearPlaneDistance"
+                }));
+            else if ((double)farPlaneDistance <= 0.0)
+            {
+                throw new ArgumentOutOfRangeException("farPlaneDistance", string.Format((IFormatProvider)CultureInfo.CurrentCulture, "NegativePlaneDistance", new object[1]
+                {
+                    (object) "farPlaneDistance"
+                }));
+            }
+            else
+            {
+                //if ((double)nearPlaneDistance >= (double)farPlaneDistance)
+                //    throw new ArgumentOutOfRangeException("nearPlaneDistance", "OppositePlanes");
+                float num1 = 1f / (float)Math.Tan((double)fieldOfView * 0.5);
+                float num2 = num1 / aspectRatio;
+                Matrix matrix;
+                matrix.M11 = num2;
+                matrix.M12 = matrix.M13 = matrix.M14 = 0.0f;
+                matrix.M22 = num1;
+                matrix.M21 = matrix.M23 = matrix.M24 = 0.0f;
+                matrix.M31 = matrix.M32 = 0.0f;
+                matrix.M33 = -farPlaneDistance / (nearPlaneDistance - farPlaneDistance) - 1;
+                matrix.M34 = -1f;
+                matrix.M41 = matrix.M42 = matrix.M44 = 0.0f;
+                matrix.M43 = -(float)((double)nearPlaneDistance * (double)farPlaneDistance / ((double)nearPlaneDistance - (double)farPlaneDistance));
                 return matrix;
             }
         }
@@ -2758,6 +2806,11 @@ return flag;
         /// <param name="matrix">Source matrix.</param>
         public static Matrix Invert(Matrix matrix)
         {
+            return Invert(ref matrix);
+        }
+
+        public static Matrix Invert(ref Matrix matrix)
+        {
             float num1 = matrix.M11;
             float num2 = matrix.M12;
             float num3 = matrix.M13;
@@ -3434,6 +3487,12 @@ return flag;
             return orientation;
         }
 
+        [Conditional("DEBUG")]
+        public void AssertIsValid()
+        {
+            Debug.Assert(IsValid());
+        }
+
         public bool IsValid()
         {
             return (M11 + M12 + M13 + M14 + M21 + M22 + M23 + M24 + M31 + M32 + M33 + M34 + M41 + M42 + M43 + M44).IsValid();
@@ -3724,6 +3783,84 @@ return flag;
         //        (double)m.M41, (double)m.M42, (double)m.M43, (double)m.M44);
         //}
 
+#if XB1 // XB1_SYNC_SERIALIZER_NOEMIT
+        public object GetMemberData(MemberInfo m)
+        {
+            if (m.Name.Length > 1)
+            {
+                if (m.Name[0] != 'M')
+                {
+                    if (m.Name == "Up")
+                        return Up;
+                    if (m.Name == "Down")
+                        return Down;
+                    if (m.Name == "Right")
+                        return Right;
+                    if (m.Name == "Left")
+                        return Left;
+                    if (m.Name == "Forward")
+                        return Forward;
+                    if (m.Name == "Backward")
+                        return Backward;
+                    if (m.Name == "Translation")
+                        return Translation;
+                }
+                else
+                {
+                    if (m.Name.Length > 2)
+                    {
+                        if (m.Name[1] == '1')
+                        {
+                            if (m.Name[2] == '1')
+                                return M11;
+                            if (m.Name[2] == '2')
+                                return M12;
+                            if (m.Name[2] == '3')
+                                return M13;
+                            if (m.Name[2] == '4')
+                                return M14;
+                        }
+                        if (m.Name[1] == '2')
+                        {
+                            if (m.Name[2] == '1')
+                                return M21;
+                            if (m.Name[2] == '2')
+                                return M22;
+                            if (m.Name[2] == '3')
+                                return M23;
+                            if (m.Name[2] == '4')
+                                return M24;
+                        }
+                        if (m.Name[1] == '3')
+                        {
+                            if (m.Name[2] == '1')
+                                return M31;
+                            if (m.Name[2] == '2')
+                                return M32;
+                            if (m.Name[2] == '3')
+                                return M33;
+                            if (m.Name[2] == '4')
+                                return M34;
+                        }
+                        if (m.Name[1] == '4')
+                        {
+                            if (m.Name[2] == '1')
+                                return M41;
+                            if (m.Name[2] == '2')
+                                return M42;
+                            if (m.Name[2] == '3')
+                                return M43;
+                            if (m.Name[2] == '4')
+                                return M44;
+                        }
+                    }
+                }
+            }
+
+            System.Diagnostics.Debug.Assert(false, "TODO for XB1.");
+            return null;
+        }
+#endif // XB1
     }
 
 }

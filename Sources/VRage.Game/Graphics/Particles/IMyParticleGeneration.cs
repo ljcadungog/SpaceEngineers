@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Xml;
-using VRage.Animations;
+using VRageRender.Animations;
 using VRageMath;
 
 namespace VRage.Game
@@ -34,10 +34,13 @@ namespace VRage.Game
 
         void MergeAABB(ref BoundingBoxD aabb);
 
-        bool IsDirty { get; }
         void SetDirty();
+        void SetAnimDirty();
+        void SetPositionDirty();
+        
+        bool Show { get; set; }
 
         void Draw(List<VRageRender.MyBillboard> collectedBillboards);
-        void PrepareForDraw(ref VRageRender.MyBillboard effectBillboard);
+        void PrepareForDraw();
     }
 }

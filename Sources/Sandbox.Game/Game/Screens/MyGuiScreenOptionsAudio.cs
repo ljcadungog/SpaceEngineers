@@ -29,6 +29,8 @@ namespace Sandbox.Game.Gui
             public bool EnableVoiceChat;
             public bool EnableMuteWhenNotInFocus;
             public bool EnableDynamicMusic;
+            public bool EnableReverb;
+            public bool ShipSoundsAreBasedOnSpeed;
         }
 
         MyGuiControlSlider m_gameVolumeSlider;
@@ -38,13 +40,15 @@ namespace Sandbox.Game.Gui
         MyGuiControlCheckbox m_enableVoiceChat;
         MyGuiControlCheckbox m_enableMuteWhenNotInFocus;
         MyGuiControlCheckbox m_enableDynamicMusic;
+        MyGuiControlCheckbox m_enableReverb;
+        MyGuiControlCheckbox m_shipSoundsAreBasedOnSpeed;
         MyGuiScreenOptionsAudioSettings m_settingsOld = new MyGuiScreenOptionsAudioSettings();
         MyGuiScreenOptionsAudioSettings m_settingsNew = new MyGuiScreenOptionsAudioSettings();
 
         private bool m_gameAudioPausedWhenOpen;
         
         public MyGuiScreenOptionsAudio()
-            : base(new Vector2(0.5f, 0.5f), MyGuiConstants.SCREEN_BACKGROUND_COLOR, size: new Vector2(1030f , 600f) / MyGuiConstants.GUI_OPTIMAL_SIZE)
+            : base(new Vector2(0.5f, 0.5f), MyGuiConstants.SCREEN_BACKGROUND_COLOR, size: new Vector2(1030f , 800f) / MyGuiConstants.GUI_OPTIMAL_SIZE)
         {
             EnabledBackgroundFade = true;
 
@@ -52,7 +56,7 @@ namespace Sandbox.Game.Gui
 
             var topLeft = m_size.Value * -0.5f;
             var topCenter = m_size.Value * new Vector2(0f, -0.5f);
-            var bottomCenter = m_size.Value * (MyPerGameSettings.VoiceChatEnabled ? new Vector2(0f, 0.7f) : new Vector2(0f, 0.6f));
+            var bottomCenter = m_size.Value * new Vector2(0f, 0.5f);
             float startHeight = MyPerGameSettings.VoiceChatEnabled? 150f : 170f;
 
             Vector2 controlsOriginLeft = topLeft + new Vector2(110f, startHeight) / MyGuiConstants.GUI_OPTIMAL_SIZE;
@@ -68,7 +72,8 @@ namespace Sandbox.Game.Gui
                 position: controlsOriginRight + 0 * controlsDelta,
                 minValue: MyAudioConstants.GAME_MASTER_VOLUME_MIN,
                 maxValue: MyAudioConstants.GAME_MASTER_VOLUME_MAX,
-                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER);
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER,
+                defaultValue: MySandboxGame.Config.GameVolume);
             m_gameVolumeSlider.ValueChanged = OnGameVolumeChange;
             Controls.Add(m_gameVolumeSlider);
 
@@ -81,7 +86,8 @@ namespace Sandbox.Game.Gui
                 position: controlsOriginRight + 1 * controlsDelta,
                 minValue: MyAudioConstants.MUSIC_MASTER_VOLUME_MIN,
                 maxValue: MyAudioConstants.MUSIC_MASTER_VOLUME_MAX,
-                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER);
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER,
+                defaultValue: MySandboxGame.Config.MusicVolume);
             m_musicVolumeSlider.ValueChanged = OnMusicVolumeChange;
             Controls.Add(m_musicVolumeSlider);
 
@@ -118,7 +124,37 @@ namespace Sandbox.Game.Gui
                 Controls.Add(m_enableDynamicMusic);
                 perGameControls++;
             }
-            //EnableDynamicMusic
+
+            m_shipSoundsAreBasedOnSpeed = new MyGuiControlCheckbox(
+                position: controlsOriginRight + perGameControls * controlsDelta,
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER);
+            m_shipSoundsAreBasedOnSpeed.IsCheckedChanged = ShipSoundsAreBasedOnSpeedChecked;
+            if (MyPerGameSettings.EnableShipSoundSystem)
+            {
+                Controls.Add(new MyGuiControlLabel(
+                position: controlsOriginLeft + perGameControls * controlsDelta,
+                text: MyTexts.GetString(MyCommonTexts.AudioSettings_ShipSoundsBasedOnSpeed),
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER));
+                Controls.Add(m_shipSoundsAreBasedOnSpeed);
+                perGameControls++;
+            }
+
+            m_enableReverb = new MyGuiControlCheckbox(
+                //toolTip: MyTexts.GetString(MySpaceTexts.ToolTipAudioOptionsEnableReverb),
+                position: controlsOriginRight + perGameControls * controlsDelta,
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER);
+            m_enableReverb.IsCheckedChanged = EnableReverbChecked;
+            m_enableReverb.Enabled = MyAudio.Static.SampleRate <= MyAudio.MAX_SAMPLE_RATE;
+            m_enableReverb.IsChecked = MyAudio.Static.SampleRate <= MyAudio.MAX_SAMPLE_RATE;
+            if (MyPerGameSettings.UseReverbEffect)
+            {
+                Controls.Add(new MyGuiControlLabel(
+                position: controlsOriginLeft + perGameControls * controlsDelta,
+                text: MyTexts.GetString(MyCommonTexts.AudioSettings_EnableReverb),
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER));
+                Controls.Add(m_enableReverb);
+                perGameControls++;
+            }
 
             // Voice chat checkbox
             m_enableVoiceChat = new MyGuiControlCheckbox(
@@ -140,7 +176,8 @@ namespace Sandbox.Game.Gui
                 position: controlsOriginRight + perGameControls * controlsDelta,
                 minValue: MyAudioConstants.VOICE_CHAT_VOLUME_MIN,
                 maxValue: MyAudioConstants.VOICE_CHAT_VOLUME_MAX,
-                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER);
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER,
+                defaultValue: MySandboxGame.Config.VoiceChatVolume);
             m_voiceChatVolumeSlider.ValueChanged = OnVoiceChatVolumeChange;
             if (MyPerGameSettings.VoiceChatEnabled)
             {
@@ -155,21 +192,22 @@ namespace Sandbox.Game.Gui
 
 
             //  Buttons OK and CANCEL
-
+            Vector2 buttonPosition = bottomCenter - MyGuiConstants.OK_BUTTON_SIZE * new Vector2(0.7f, 0.5f);
             var m_okButton = new MyGuiControlButton(
-                position: bottomCenter + new Vector2(-75f, -130f) / MyGuiConstants.GUI_OPTIMAL_SIZE,
+                position: buttonPosition,
                 size: MyGuiConstants.OK_BUTTON_SIZE,
                 text: MyTexts.Get(MyCommonTexts.Ok),
                 onButtonClick: OnOkClick,
-                originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_BOTTOM);
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM);
             Controls.Add(m_okButton);
 
+            buttonPosition *= new Vector2(-1, 1);
             var m_cancelButton = new MyGuiControlButton(
-                position: bottomCenter + new Vector2(75f, -130f) / MyGuiConstants.GUI_OPTIMAL_SIZE,
+                position: buttonPosition,
                 size: MyGuiConstants.OK_BUTTON_SIZE,
                 text: MyTexts.Get(MyCommonTexts.Cancel),
                 onButtonClick: OnCancelClick,
-                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_BOTTOM);
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM);
             Controls.Add(m_cancelButton);
 
 
@@ -206,6 +244,16 @@ namespace Sandbox.Game.Gui
             m_settingsNew.EnableDynamicMusic = obj.IsChecked;
         }
 
+        private void ShipSoundsAreBasedOnSpeedChecked(MyGuiControlCheckbox obj)
+        {
+            m_settingsNew.ShipSoundsAreBasedOnSpeed = obj.IsChecked;
+        }
+
+        private void EnableReverbChecked(MyGuiControlCheckbox obj)
+        {
+            m_settingsNew.EnableReverb = MyAudio.Static.SampleRate <= MyAudio.MAX_SAMPLE_RATE ? obj.IsChecked : false;
+        }
+
         public override string GetFriendlyName()
         {
             return "MyGuiScreenOptionsAudio";
@@ -235,7 +283,9 @@ namespace Sandbox.Game.Gui
             settings.HudWarnings = MySandboxGame.Config.HudWarnings;
             settings.EnableVoiceChat = MySandboxGame.Config.EnableVoiceChat;
             settings.EnableMuteWhenNotInFocus = MySandboxGame.Config.EnableMuteWhenNotInFocus;
+            settings.EnableReverb = MySandboxGame.Config.EnableReverb;
             settings.EnableDynamicMusic = MySandboxGame.Config.EnableDynamicMusic;
+            settings.ShipSoundsAreBasedOnSpeed = MySandboxGame.Config.ShipSoundsAreBasedOnSpeed;
         }
 
         //void UpdateSettings(MyGuiScreenOptionsVideoSettings settings)
@@ -251,7 +301,9 @@ namespace Sandbox.Game.Gui
             m_hudWarnings.IsChecked = settings.HudWarnings;
             m_enableVoiceChat.IsChecked = settings.EnableVoiceChat;
             m_enableMuteWhenNotInFocus.IsChecked = settings.EnableMuteWhenNotInFocus;
+            m_enableReverb.IsChecked = settings.EnableReverb;
             m_enableDynamicMusic.IsChecked = settings.EnableDynamicMusic;
+            m_shipSoundsAreBasedOnSpeed.IsChecked = settings.ShipSoundsAreBasedOnSpeed;
         }
 
         void Save()
@@ -262,7 +314,9 @@ namespace Sandbox.Game.Gui
             MySandboxGame.Config.HudWarnings = m_hudWarnings.IsChecked;
             MySandboxGame.Config.EnableVoiceChat = m_enableVoiceChat.IsChecked;
             MySandboxGame.Config.EnableMuteWhenNotInFocus = m_enableMuteWhenNotInFocus.IsChecked;
+            MySandboxGame.Config.EnableReverb = m_enableReverb.IsChecked && MyAudio.Static.SampleRate <= MyAudio.MAX_SAMPLE_RATE;
             MySandboxGame.Config.EnableDynamicMusic = m_enableDynamicMusic.IsChecked;
+            MySandboxGame.Config.ShipSoundsAreBasedOnSpeed = m_shipSoundsAreBasedOnSpeed.IsChecked;
             MySandboxGame.Config.Save();
 
             //contextual music change during game
@@ -281,6 +335,13 @@ namespace Sandbox.Game.Gui
                     MyMusicController.Static = null;
                     MyAudio.Static.MusicAllowed = true;
                     MyAudio.Static.PlayMusic(new MyMusicTrack() { TransitionCategory = MyStringId.GetOrCompute("Default") });
+                }
+                if (MyAudio.Static != null && MyAudio.Static.EnableReverb != m_enableReverb.IsChecked)
+                {
+                    if (MyAudio.Static.SampleRate <= MyAudio.MAX_SAMPLE_RATE)
+                    {
+                        MyAudio.Static.EnableReverb = m_enableReverb.IsChecked;
+                    }
                 }
             }
         }

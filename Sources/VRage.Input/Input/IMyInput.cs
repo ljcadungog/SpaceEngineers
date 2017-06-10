@@ -20,12 +20,16 @@ namespace VRage.Input
         }
 
         void LoadData(SerializableDictionary<string, object> controlsGeneral, SerializableDictionary<string, object> controlsButtons);
+#if !XB1
         void LoadContent(IntPtr windowHandle);
 
         IntPtr WindowHandle
         {
             get; 
         }
+#else // XB1
+        void LoadContent();
+#endif // XB1
 
         ListReader<char> TextInput { get; }
 
@@ -34,6 +38,12 @@ namespace VRage.Input
         List<string> EnumerateJoystickNames();
 
         bool Update(bool gameFocused);
+
+        // Whitelists/Blacklists given control
+        void SetControlBlock(MyStringId controlEnum, bool block = false);
+
+        // Retruns true if the control was blacklisted
+        bool IsControlBlocked(MyStringId controlEnum);
 
         //  Return true if ANY key IS pressed, that means that the key was pressed now. During previous Update it wasn't pressed at all.
         bool IsAnyKeyPress();

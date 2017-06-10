@@ -259,6 +259,18 @@ namespace VRage.Game.Entity
             }
         }
 
+        MyModStorageComponentBase IMyEntity.Storage
+        {
+            get
+            {
+                return Storage;
+            }
+            set
+            {
+                Storage = value;
+            }
+        }
+
         bool IMyEntity.Visible
         {
             get
@@ -390,7 +402,7 @@ namespace VRage.Game.Entity
 
         VRageMath.BoundingBox IMyEntity.LocalAABBHr
         {
-            get { return PositionComp.LocalAABBHr; }
+            get { return PositionComp.LocalAABB; }
         }
 
         VRageMath.Matrix IMyEntity.LocalMatrix
@@ -511,7 +523,7 @@ namespace VRage.Game.Entity
 
         VRageMath.BoundingBoxD ModAPI.Ingame.IMyEntity.WorldAABBHr
         {
-            get { return PositionComp.WorldAABBHr; }
+            get { return PositionComp.WorldAABB; }
         }
 
         VRageMath.MatrixD ModAPI.Ingame.IMyEntity.WorldMatrix
@@ -526,7 +538,7 @@ namespace VRage.Game.Entity
 
         VRageMath.BoundingSphereD ModAPI.Ingame.IMyEntity.WorldVolumeHr
         {
-            get { return PositionComp.WorldVolumeHr; }
+            get { return PositionComp.WorldVolume; }
         }
 
         VRageMath.Vector3D ModAPI.Ingame.IMyEntity.GetPosition()
